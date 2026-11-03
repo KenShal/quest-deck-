@@ -123,6 +123,18 @@
     return { all, day, timed: all - day, at: new Date() };
   }
   window.qdCalendarRefresh = refreshCalendar;
+  window.qdUserEmail = () => (user && user.email) || '';
+  // asks Claude (through your Supabase function) for task ideas for a project
+  window.qdSuggest = async payload => {
+    if (!user) throw new Error('signin');
+    const { data, error } = await sb.functions.invoke('suggest-tasks', { body: payload });
+    if (error) {
+      let code = 'failed';
+      try { const j = await error.context.json(); if (j && j.error) code = j.error; } catch {}
+      throw new Error(code);
+    }
+    return data;
+  };
   async function showAccount() {
     overlay(`<div class="sheet"><h2>Calendar &amp; account</h2><p style="color:var(--muted)">Loading your calendar link…</p></div>`, true);
     const url = await feedUrl().catch(() => null);
@@ -131,6 +143,7 @@
       <h2>Put Quest Deck in your iPhone Calendar</h2>
       <p style="margin:0;font-size:14px">Tasks land in time slots on their due day: a time you choose, or a free slot Quest Deck picks. Tasks typed as <b>Event</b> block the whole day. Missed ones can be rescheduled in the app.</p>
       <a class="btn primary" href="${esc(url.replace(/^https:/, 'webcal:'))}" style="justify-content:center;text-decoration:none">Subscribe on this iPhone</a>
+      <p style="margin:0;font-size:13px;color:var(--muted)">Outlook only re-checks subscribed calendars every few hours, and it can't be changed or forced. For anything you need there now, open the task and use <b>Add to your calendar right now</b>. It puts the event in Outlook (or Google, or Apple) instantly.</p>
       <ol style="margin:0;padding-left:20px;font-size:14px;display:grid;gap:4px">
         <li>Tap the button above, then <b>Subscribe</b>.</li>
         <li>Turn <b>Remove Alerts</b> off, so the reminders buzz.</li>

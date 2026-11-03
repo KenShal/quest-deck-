@@ -71,6 +71,7 @@ Deno.serve(async (req) => {
 
   for (const t of tasks) {
     if (!t.title || t.status === "done" || t.status === "someday") continue;
+    if (t.calAdded) continue; // added to the user's own calendar with the instant buttons; avoid a duplicate from the feed
     const p = t.projectId ? projects[t.projectId] : null;
     const cat = p?.area || t.cat || "";
     const tag = (cat ? `[${cat}] ` : "") + (t.priority === 1 ? "‼ " : "");

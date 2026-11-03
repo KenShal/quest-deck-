@@ -422,6 +422,21 @@ canvas.fx{position:fixed;inset:0;pointer-events:none;z-index:70;width:100%;heigh
 .qpick button:active{transform:scale(.88);background:var(--qc);color:#fff}
 .qkey{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted);padding:0 4px}
 .qkey i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+
+/* ---------- suggestions + invites ---------- */
+.sugg{display:grid;gap:2px;background:var(--sunk);border-radius:var(--r);padding:10px 12px;margin-top:8px}
+.sugg-h{font:600 15px var(--f-body);padding:2px 0 6px}
+.sugg-h small{display:block;font-weight:400;font-size:12.5px;color:var(--muted)}
+.sg{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:.5px solid var(--line)}
+.sg:first-of-type{border-top:0}
+.sg input{width:22px;height:22px;accent-color:var(--accent);margin-top:1px;flex:none}
+.sg span{display:grid;gap:1px;min-width:0}
+.sg b{font-weight:500;font-size:16px}
+.sg small{color:var(--muted);font-size:13px}
+#p-suggest.busy .ico{animation:spin .9s linear infinite}
+.calbtns{display:flex;flex-wrap:wrap;gap:8px}
+.fine{font-size:12.5px;color:var(--muted);line-height:1.4;padding:2px 2px 0}
+.linkbtn{border:0;background:none;color:var(--accent);font:inherit;font-weight:600;padding:0;text-decoration:underline}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -474,6 +489,8 @@ const ICON={
   mute:'<svg class="ico" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l4 6M21 9l-4 6"/></svg>',
   right:'<svg class="ico" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
   grid:'<svg class="ico" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2"/></svg>',
+  spark:'<svg class="ico" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>',
+  people:'<svg class="ico" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6M18 14.8c2 .6 3.5 2.4 3.5 5.2"/></svg>',
   trash:'<svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
   left:'<svg class="ico" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>'
 };
@@ -505,6 +522,8 @@ const QUADS={1:{name:'Do first',short:'Urgent · Important',sub:'Do these today.
   4:{name:'Let go',short:'Not urgent · Not important',sub:'Drop it, or do it only for fun.',empty:'Nothing here. Good.',v:'--faint'}};
 const quadSet=t=>t.urgent!=null&&t.important!=null;
 const quadOf=t=>t.important?(t.urgent?1:2):(t.urgent?3:4);
+const EMAIL_RE=/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g;
+const parsePeople=v=>[...new Set((String(v||'').match(EMAIL_RE)||[]).map(x=>x.toLowerCase()))];
 const COMBO_MIN=30;
 const BASE_MIN={S:5,M:10,L:20};
 const fmtMin=n=>n>=60?`${Math.floor(n/60)}h ${n%60}m`:`${n} min`;
@@ -571,11 +590,14 @@ function parseQuick(text){
   t=t.replace(/\s!([123])(?=\s)/g,(m,n)=>{o.priority=+n;return ' '});
   t=t.replace(/\s\*([sml])(?=\s)/gi,(m,z)=>{o.size=z.toUpperCase();return ' '});
   t=t.replace(/\s@wait(ing)?(?=\s)/gi,()=>{o.status='waiting';return ' '});
+  t=t.replace(/\s([\w.+-]+@[\w-]+(?:\.[\w-]+)+)(?=\s)/g,(m,e)=>{(o.people=o.people||[]).push(e.toLowerCase());return ' '});
   t=t.replace(/\s@(urgent|important)(?=\s)/gi,(m,k)=>{o[k.toLowerCase()]=true;return ' '});
   t=t.replace(/\s@(event|meeting|meet|call|online|zoom|outside|out|errand|focus|deep|home)(?=\s)/gi,(m,k)=>{k=k.toLowerCase();o.kind={meet:'meeting',zoom:'online',out:'outside',errand:'outside',deep:'focus'}[k]||k;return ' '});
   t=t.replace(/\s(?:for\s)?(\d{1,3})\s?(min|mins|m|h|hr|hrs|hour|hours)(?=\s)(?!\s*(?:left|late))/gi,(m,n,u)=>{const v=u[0].toLowerCase()==='h'?+n*60:+n;if(v>=5&&v<=480){o.dur=v;return ' '}return m});
-  t=t.replace(/\s(?:at\s)?(\d{1,2})(?::(\d{2}))?\s?(am|pm)(?=\s)/i,(m,h,mi,ap)=>{h=+h%12+(ap.toLowerCase()==='pm'?12:0);o.at=pad(h)+':'+(mi||'00');return ' '});
-  t=t.replace(/\s(?:at\s)?([01]?\d|2[0-3]):([0-5]\d)(?=\s)/,(m,h,mi)=>{o.at=pad(+h)+':'+mi;return ' '});
+  t=t.replace(/\s(?:@\s?|at\s)?(\d{1,2})(?::(\d{2}))?\s?(am|pm)(?=\s)/i,(m,h,mi,ap)=>{h=+h%12+(ap.toLowerCase()==='pm'?12:0);o.at=pad(h)+':'+(mi||'00');return ' '});
+  t=t.replace(/\s(?:@\s?|at\s)?([01]?\d|2[0-3]):([0-5]\d)(?=\s)/,(m,h,mi)=>{o.at=pad(+h)+':'+mi;return ' '});
+  // a bare hour after @ or "at" has no am/pm: 7-11 means morning, 12 and 1-6 mean afternoon
+  if(!o.at)t=t.replace(/\s(?:@\s?|at\s)(\d{1,2})(?=\s)/i,(m,h)=>{h=+h;if(h<1||h>12)return m;const hh=h>=7&&h<=11?h:(h===12?12:h+12);o.at=pad(hh)+':00';return ' '});
   t=t.replace(/\severy((?:[\s,]+(?:and\s+)?(?:sun|mon|tue|wed|thu|fri|sat)[a-z]*)+)(?=\s)/i,(m,days)=>{
     const ds=[...new Set((days.toLowerCase().match(/sun|mon|tue|wed|thu|fri|sat/g)||[]).map(d=>DOWS.indexOf(d)))].sort();o.recur='custom';o.recurDays=ds;return ' '});
   t=t.replace(/\s(every\s?day|daily|weekdays|every\s?weekday|every\s?2\s?weeks|biweekly|every\s?other\s?week|every\s?week|weekly|every\s?month|monthly)(?=\s)/i,(m,w)=>{const x=w.toLowerCase().replace(/\s/g,'');
@@ -837,6 +859,7 @@ function taskRow(t,opts={}){const td=today();const p=projOf(t);const done=t.stat
   if(!opts.hideProject){if(p)meta.push(`<span>${catDot(cat)}${esc(p.name)}</span>`);else if(cat)meta.push(`<span>${catDot(cat)}${cat}</span>`)}
   if(t.due&&!done){const d=dueLabel(t.due);const miss=isMissed(t);meta.push(`<span class="${miss?'late':d.c}">${ICON.clock}${miss?'Missed · ':''}${d.t}${slotHm(t)?' · '+fmtTime(slotHm(t)):''}</span>`)}
   if(t.kind&&!done)meta.push(`<span>${KINDL[t.kind]||''}${t.kind==='event'&&!t.at?' · all day':t.at&&t.dur?' · '+fmtDur(t.dur):''}</span>`);
+  if(t.people&&t.people.length&&!done)meta.push(`<span>${ICON.people}${t.people.length} invited</span>`);
   if(t.resched&&!done)meta.push(`<span>Rescheduled ${t.resched}×</span>`);
   if(t.status==='waiting')meta.push(`<span>${ICON.wait}Waiting on ${esc(t.waitingOn||'someone')}</span>`);
   if(t.recur)meta.push(`<span>${ICON.repeat}${esc(recurLabel(t))}</span>`);
@@ -979,6 +1002,59 @@ function viewMatrix(){const open=openTasks().filter(inArea).filter(t=>!['inbox',
      <div class="qkey">${[1,2,3,4].map(q=>`<span><i style="background:var(${QUADS[q].v})"></i>${q} ${QUADS[q].name}</span>`).join('')}</div>
      ${unsorted.length>12?`<div style="color:var(--muted);font-size:13px;padding:0 4px">+${unsorted.length-12} more. Sort these first.</div>`:''}</section>`:''}`}
 
+/* ---------- instant calendar add + invites ---------- */
+function formEvent(){const f=document.querySelector('form[data-form="task"]');const id=f.dataset.id;const t=id?S.tasks[id]:null;const g=k=>document.getElementById(k).value;
+  const due=g('e-due')||today(),at=g('e-time')||null,dur=+g('e-dur')||null;let start,end,allDay=false;
+  if(at){start=new Date(`${due}T${at}:00`);end=new Date(+start+(dur||30)*60000)}
+  else if(t&&t.auto&&t.startAt&&t.due===due){start=new Date(t.startAt);end=new Date(+start+(t.autoDur||dur||30)*60000)}
+  else{allDay=true;start=parseYmd(due);end=parseYmd(addDays(due,1))}
+  const proj=document.getElementById('e-project').selectedOptions[0];
+  return{id:id||'new'+uid(),title:g('e-title').trim()||'Task',notes:g('e-notes').trim(),people:parsePeople(g('e-people')),start,end,allDay,due,project:proj&&proj.value?proj.textContent:''}}
+const isoZ=d=>d.toISOString().replace(/\.\d+/,'');
+const icsStamp=d=>isoZ(d).replace(/[-:]/g,'');
+const icsEsc=x=>String(x||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+function eventBody(ev){return [ev.notes,ev.project?`Project: ${ev.project}`:'','Added from Quest Deck'].filter(Boolean).join('\n\n')}
+function calUrl(w,ev){const q=encodeURIComponent,body=eventBody(ev);
+  if(w==='outlook'||w==='outlook-live'){const base=w==='outlook'?'https://outlook.office.com':'https://outlook.live.com';
+    const p=['path='+q('/calendar/action/compose'),'rru=addevent','subject='+q(ev.title),'body='+q(body),
+      ev.allDay?`startdt=${ev.due}&enddt=${addDays(ev.due,1)}&allday=true`:`startdt=${q(isoZ(ev.start))}&enddt=${q(isoZ(ev.end))}`];
+    if(ev.people.length)p.push('to='+q(ev.people.join(';')));return `${base}/calendar/0/deeplink/compose?${p.join('&')}`}
+  if(w==='google'){const dates=ev.allDay?`${ev.due.replace(/-/g,'')}/${addDays(ev.due,1).replace(/-/g,'')}`:`${icsStamp(ev.start)}/${icsStamp(ev.end)}`;
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${q(ev.title)}&dates=${dates}&details=${q(body)}${ev.people.length?'&add='+q(ev.people.join(',')):''}`}
+  if(w==='mail'){const when=ev.allDay?`${parseYmd(ev.due).toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'})} (all day)`:`${ev.start.toLocaleString(undefined,{weekday:'long',day:'numeric',month:'long',hour:'numeric',minute:'2-digit'})} to ${ev.end.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}`;
+    return `mailto:${ev.people.join(',')}?subject=${q('Invitation: '+ev.title)}&body=${q(`Hi,\n\nI would like you to join: ${ev.title}\nWhen: ${when}\n\n${ev.notes?ev.notes+'\n\n':''}Please reply to confirm.`)}`}
+  return ''}
+function downloadIcs(ev){const me=(window.qdUserEmail&&window.qdUserEmail())||'';const now=icsStamp(new Date());
+  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Quest Deck//EN','CALSCALE:GREGORIAN','METHOD:'+(me&&ev.people.length?'REQUEST':'PUBLISH'),'BEGIN:VEVENT',`UID:invite-${ev.id}@quest-deck`,`DTSTAMP:${now}`,
+    ev.allDay?`DTSTART;VALUE=DATE:${ev.due.replace(/-/g,'')}`:`DTSTART:${icsStamp(ev.start)}`,ev.allDay?`DTEND;VALUE=DATE:${addDays(ev.due,1).replace(/-/g,'')}`:`DTEND:${icsStamp(ev.end)}`,
+    `SUMMARY:${icsEsc(ev.title)}`,`DESCRIPTION:${icsEsc(eventBody(ev))}`,'STATUS:CONFIRMED','SEQUENCE:0'];
+  if(me&&ev.people.length)L.push(`ORGANIZER;CN=${icsEsc(me)}:mailto:${me}`);
+  ev.people.forEach(e=>L.push(`ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${e}`));
+  L.push('BEGIN:VALARM','ACTION:DISPLAY',`DESCRIPTION:${icsEsc(ev.title)}`,'TRIGGER:-PT10M','END:VALARM','END:VEVENT','END:VCALENDAR');
+  const url=URL.createObjectURL(new Blob([L.join('\r\n')+'\r\n'],{type:'text/calendar;charset=utf-8'}));
+  const a=document.createElement('a');a.href=url;if(!/iPhone|iPad/.test(navigator.userAgent))a.download=(ev.title.replace(/[^\w]+/g,'-').slice(0,40)||'event')+'.ics';else a.target='_blank';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000)}
+function addToCalendar(w){const f=document.querySelector('form[data-form="task"]');if(!f)return;const ev=formEvent();
+  if(!document.getElementById('e-title').value.trim()){toast('Give the task a title first.');return}
+  if(w==='ics')downloadIcs(ev);else{const u=calUrl(w,ev);if(w==='mail')location.href=u;else window.open(u,'_blank','noopener')}
+  f.dataset.added='1';toast(ev.people.length?`Opening your calendar. <b>${ev.people.length} ${ev.people.length>1?'people':'person'}</b> will be invited when you save it there.`:'Opening your calendar. Save the event there to finish.')}
+
+/* ---------- AI task suggestions ---------- */
+let SUGG=[];
+function renderSugg(){return `<div class="sugg"><div class="sugg-h">Suggested tasks <small>Untick any you don't want. They are added when you save.</small></div>${SUGG.map((t,i)=>`<label class="sg"><input type="checkbox" data-sg="${i}" checked><span><b>${esc(t.title)}</b><small>${[t.kind&&KINDL[t.kind],SIZE[t.size],t.dueInDays!=null?(t.dueInDays===0?'today':'in '+t.dueInDays+' days'):null,t.priority===1?'Critical':t.priority===2?'Important':null].filter(Boolean).join(' · ')}</small></span></label>`).join('')}</div>`}
+async function suggestTasks(){const box=document.getElementById('p-sugg'),btn=document.getElementById('p-suggest');if(!box||!btn||btn.disabled)return;
+  const g=k=>document.getElementById(k)?.value||'';const pid=document.querySelector('form[data-form="project"]')?.dataset.id;
+  const name=g('p-name').trim(),description=g('p-desc').trim();
+  if(!name&&!description){toast('Write a short description first.');return}
+  if(!window.qdSuggest){box.innerHTML=`<div class="empty-note">Task suggestions work on your Quest Deck site while you are signed in.</div>`;return}
+  const orig=btn.innerHTML;btn.disabled=true;btn.innerHTML=`${ICON.spark}Thinking…`;btn.classList.add('busy');
+  try{const existing=pid?tasks().filter(t=>t.projectId===pid).map(t=>t.title):[];
+    const r=await window.qdSuggest({name,description,deadline:g('p-deadline')||null,area:document.getElementById('p-area')?.dataset.v,today:today(),existing});
+    SUGG=r.tasks||[];box.innerHTML=SUGG.length?renderSugg():`<div class="empty-note">No suggestions came back. Add a few more details and try again.</div>`}
+  catch(e){const m={no_key:'Almost ready. The AI key has not been added to Supabase yet. Add it as a secret named ANTHROPIC_API_KEY, then try again.',bad_key:'Supabase rejected the AI key. Check the ANTHROPIC_API_KEY secret and try again.',busy:'The AI is busy. Try again in a minute.',empty:'Write a short description first.',signin:'Sign in on the Quest Deck site to use suggestions.'}[e.message]||'Could not get suggestions just now. Try again.';
+    box.innerHTML=`<div class="empty-note">${m}</div>`}
+  finally{btn.disabled=false;btn.classList.remove('busy');btn.innerHTML=orig}}
+
 /* ---------- calendar view ---------- */
 const TL_H=52;
 function itemsOn(day){const open=openTasks().filter(inArea);const timed=[],allDay=[];
@@ -1110,6 +1186,10 @@ function openTaskSheet(id,preset){const isNew=!id;const t=isNew?{title:'',status
     <div class="grid2"><div class="field"><label for="e-time">Choose a time</label><input type="time" id="e-time" value="${t.at||''}"></div>
       <div class="field"><label for="e-dur">Length</label><select id="e-dur"><option value="">Auto</option>${DURS.map(m=>`<option value="${m}" ${(t.dur||0)===m?'selected':''}>${fmtDur(m)}</option>`).join('')}</select></div></div>
     <div style="font-size:13px;color:var(--muted);margin-top:-6px;padding:0 2px">${t.auto&&t.startAt?`Auto-booked for ${fmtTime(slotHm(t))}. `:''}Leave the time empty: tasks get a free slot on the due date automatically, and an <b>Event</b> blocks the whole day.</div>
+    <div class="field"><label for="e-people">Invite people</label><input id="e-people" type="text" inputmode="email" autocomplete="off" autocapitalize="off" placeholder="name@company.com, other@example.com" value="${esc((t.people||[]).join(', '))}"></div>
+    <div class="field"><span class="lbl">Add to your calendar right now</span>
+      <div class="calbtns"><button type="button" class="btn sm" data-act="cal-add" data-w="outlook">Outlook</button><button type="button" class="btn sm" data-act="cal-add" data-w="outlook-live">Outlook.com</button><button type="button" class="btn sm" data-act="cal-add" data-w="google">Google</button><button type="button" class="btn sm" data-act="cal-add" data-w="ics">Apple / .ics</button><button type="button" class="btn sm" data-act="cal-add" data-w="mail">Email invite</button></div>
+      <div class="fine">Instant, with no waiting for a calendar to refresh. People you list get invited when you save the event in your calendar. If names do not fill in, use the .ics file.${t.calAdded?` <b>This task now lives in your calendar</b> and no longer syncs from the feed. <button type="button" class="linkbtn" data-act="cal-resync" data-id="${id||''}">Sync from Quest Deck again</button>`:''}</div></div>
     <div class="grid2"><div class="field"><label for="e-pri">Priority</label><select id="e-pri">${[[1,'1 · Critical'],[2,'2 · Important'],[3,'3 · Normal']].map(([v,l])=>`<option value="${v}" ${(t.priority||3)==v?'selected':''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label for="e-warn">Warn me (days before)</label><input type="number" min="0" max="60" id="e-warn" value="${t.warn??''}" placeholder="${warnOf(t)} (auto)"></div></div>
     <div class="grid2"><div class="field"><label for="e-size">Size</label><select id="e-size">${Object.entries(SIZE).map(([v,l])=>`<option value="${v}" ${(t.size||'M')===v?'selected':''}>${l}</option>`).join('')}</select></div>
@@ -1124,6 +1204,8 @@ function openProjectSheet(id){const p=id?S.projects[id]:{name:'',area:S.area==='
     <h2>${id?'Edit project':'New project'}</h2>
     <div class="field"><label for="p-name">Name</label><input id="p-name" value="${esc(p.name)}" required></div>
     <div class="field"><span class="lbl">Category</span>${segHtml('p-area',catOfProject(p)||'Work',CATS.map(c=>[c,c,catDot(c)]))}</div>
+    <div class="field"><label for="p-desc">Describe the project</label><textarea id="p-desc" rows="4" placeholder="What is it, who is involved, what needs to happen?">${esc(p.desc||'')}</textarea></div>
+    <div id="p-sugg-wrap"><button type="button" class="btn" data-act="suggest" id="p-suggest">${ICON.spark}Suggest tasks</button><div id="p-sugg"></div></div>
     <div class="grid2"><div class="field"><label for="p-deadline">Deadline</label><input type="date" id="p-deadline" value="${p.deadline||''}"></div>
       <div class="field"><label for="p-goal">What does done look like?</label><input id="p-goal" value="${esc(p.goal||'')}" placeholder="One sentence"></div></div>
     <div class="field"><span class="lbl">Color</span><div class="swatches" id="p-color" data-v="${p.color||'c1'}">${COLORS.map(c=>`<button type="button" data-act="swatch" data-id="${c}" aria-label="Color ${c}" aria-pressed="${(p.color||'c1')===c}" style="background:var(--${c})"></button>`).join('')}</div></div>
@@ -1205,6 +1287,9 @@ document.addEventListener('click',e=>{
   if(a==='set-cat'){const t=S.tasks[id];saveTask({...t,cat:el.dataset.cat,status:'next'});toast(`Filed to ${el.dataset.cat}`);return}
   if(a==='area'){S.area=id;S.openProject=null;try{localStorage.setItem('qd-area',id)}catch{}render();return}
   if(a==='sound'){soundOn=!soundOn;try{localStorage.setItem('qd-sound',soundOn?'on':'off')}catch{}if(soundOn)tone([660,880]);render();if(document.querySelector('[data-form="reward"]'))openRewardsSheet();return}
+  if(a==='cal-add'){addToCalendar(el.dataset.w);return}
+  if(a==='cal-resync'){const t=S.tasks[id];if(t){saveTask({...t,calAdded:null});toast('This task syncs from Quest Deck again.');closeSheet()}return}
+  if(a==='suggest'){suggestTasks();return}
   if(a==='quad-move'){openQuadSheet(id);return}
   if(a==='q-set'){setQuad(id,+el.dataset.q);closeSheet();return}
   if(a==='cal-day'){S.calDay=id;render();return}
@@ -1258,7 +1343,7 @@ document.addEventListener('submit',e=>{e.preventDefault();const f=e.target;
     if(recur==='custom'&&!recurDays.length){toast('Pick at least one day for this recurring task.');return}
     const n={...t,title:g('e-title').trim()||t.title||'Untitled',projectId:g('e-project')||null,cat:document.getElementById('e-cat').dataset.v||null,status,due:g('e-due')||null,warn:g('e-warn')===''?null:+g('e-warn'),
       priority:+g('e-pri'),size:g('e-size'),waitingOn:g('e-wait').trim(),recur,recurDays:recur==='custom'?recurDays:null,notes:g('e-notes'),
-      kind:document.getElementById('e-kind').dataset.v||null,
+      kind:document.getElementById('e-kind').dataset.v||null,people:parsePeople(g('e-people')),calAdded:(document.querySelector('form[data-form="task"]').dataset.added?new Date().toISOString():t.calAdded)||null,
       urgent:({y:true,n:false})[document.getElementById('e-urgent').dataset.v]??null,important:({y:true,n:false})[document.getElementById('e-important').dataset.v]??null,at:g('e-time')||null,dur:+g('e-dur')||null,auto:false};
     if((n.at||n.kind==='event')&&!n.due)n.due=today();
     stampStart(n);
@@ -1270,8 +1355,13 @@ document.addEventListener('submit',e=>{e.preventDefault();const f=e.target;
     saveTask(n);closeSheet();warnOverlap(n);if(!id)toast(`Added: ${esc(n.title)}${n.recur?' · '+esc(recurLabel(n)):''}${n.at?' · '+fmtTime(n.at):''}`);return}
   if(f.dataset.form==='project'){const id=f.dataset.id;const g=k=>document.getElementById(k).value;
     const base=id?S.projects[id]:{id:'p_'+uid(),createdAt:new Date().toISOString()};
-    const p={...base,name:g('p-name').trim()||'Untitled',area:document.getElementById('p-area').dataset.v||'Work',deadline:g('p-deadline')||null,goal:g('p-goal').trim(),color:document.getElementById('p-color').dataset.v};
-    saveProject(p);closeSheet();if(!id){S.openProject=p.id;S.view='projects';render()}return}
+    const p={...base,name:g('p-name').trim()||'Untitled',area:document.getElementById('p-area').dataset.v||'Work',deadline:g('p-deadline')||null,goal:g('p-goal').trim(),desc:g('p-desc').trim(),color:document.getElementById('p-color').dataset.v};
+    const picks=[...document.querySelectorAll('[data-sg]:checked')].map(c=>SUGG[+c.dataset.sg]).filter(Boolean);
+    saveProject(p);closeSheet();if(!id){S.openProject=p.id;S.view='projects';render()}
+    if(picks.length){const td=today();picks.forEach(x=>{const due=x.dueInDays!=null?addDays(td,x.dueInDays):(x.kind==='event'?td:null);
+      saveTask({id:'t_'+uid(),createdAt:new Date().toISOString(),title:x.title,projectId:p.id,status:'next',priority:x.priority,size:x.size,kind:x.kind||null,urgent:x.urgent,important:x.important,due})});
+      SUGG=[];toast(`Added <b>${picks.length} task${picks.length>1?'s':''}</b> to ${esc(p.name)}.`)}
+    return}
   if(f.dataset.form==='resched'){const d=document.getElementById('rs-date').value;const h=document.getElementById('rs-time').value;if(!d)return;reschedule(f.dataset.id,d,h||null);return}
   if(f.dataset.form==='reward'){const name=document.getElementById('r-name').value.trim();const cost=Math.max(1,+document.getElementById('r-cost').value||1);if(!name)return;
     saveMeta({rewards:[...rewardsList(),{id:'r_'+uid(),name,cost}]});openRewardsSheet();return}
@@ -1286,7 +1376,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();
 function updatePreview(){const v=document.getElementById('qa-input').value.trim();const el=document.getElementById('qa-preview');if(!v){el.textContent='';return}
   const o=parseQuick(v);const p=o.projectId?S.projects[o.projectId].name:o.newProject?`new project "${o.newProject}"`:null;
   const cat=o.projectId?catOfProject(S.projects[o.projectId]):o.cat||(S.area!=='All'?S.area:null);
-  const bits=[o.status==='inbox'?'→ Inbox':o.status==='waiting'?'→ Waiting for':'→ Next action',cat,p&&'in '+p,o.recur?recurLabel(o)+' from '+fmtDate(o.due):o.due&&'due '+fmtDate(o.due),o.priority<3&&'priority '+o.priority,o.size!=='M'&&SIZE[o.size].toLowerCase(),o.kind&&KINDL[o.kind],o.urgent!=null&&QUADS[quadOf(o)].short,o.at&&(fmtTime(o.at)+(o.dur?' for '+fmtDur(o.dur):''))].filter(Boolean);
+  const bits=[o.status==='inbox'?'→ Inbox':o.status==='waiting'?'→ Waiting for':'→ Next action',cat,p&&'in '+p,o.recur?recurLabel(o)+' from '+fmtDate(o.due):o.due&&'due '+fmtDate(o.due),o.priority<3&&'priority '+o.priority,o.size!=='M'&&SIZE[o.size].toLowerCase(),o.kind&&KINDL[o.kind],o.urgent!=null&&QUADS[quadOf(o)].short,o.people&&('invite '+o.people.join(', ')),o.at&&(fmtTime(o.at)+(o.dur?' for '+fmtDur(o.dur):''))].filter(Boolean);
   el.textContent=`"${o.title}" ${bits.join(' · ')}`}
 
 /* ---------- toast + confetti ---------- */
