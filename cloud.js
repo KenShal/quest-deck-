@@ -1,8 +1,8 @@
 /* Quest Deck standalone: sign-in, Supabase sync and the calendar link.
    Gives the app the same `claude.use('db')` surface it has on claude.ai, backed by the qd_docs table. */
 (() => {
-  const SB_URL = 'https://guxwjjwcynecaqymxxfk.supabase.co';
-  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1eHdqandjeW5lY2FxeW14eGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2MjcxMDAsImV4cCI6MjEwOTIwMzEwMH0.WhBttMeoNGRzWsRDR_zh6J6Jbwu_rpJrjwS8eCl1jGg';
+  const SB_URL = 'https://ginxeipmisoqlcpjdqer.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpbnhlaXBtaXNvcWxjcGpkcWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2NzYxMDMsImV4cCI6MjEwOTI1MjEwM30.qEhW3vEyLHxLYwpK2neJf1aZbOCdTF9jQ6HSHNpPgrM';
   const FEED = SB_URL + '/functions/v1/calendar?token=';
   const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'qd-auth' } });
 
