@@ -440,6 +440,21 @@ canvas.fx{position:fixed;inset:0;pointer-events:none;z-index:70;width:100%;heigh
 .calbtns{display:flex;flex-wrap:wrap;gap:8px}
 .fine{font-size:12.5px;color:var(--muted);line-height:1.4;padding:2px 2px 0}
 .linkbtn{border:0;background:none;color:var(--accent);font:inherit;font-weight:600;padding:0;text-decoration:underline}
+
+/* ---------- follow-up hint card ---------- */
+.fu{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:59;width:min(420px,calc(100% - 32px));background:var(--surface);border-radius:18px;padding:12px 14px;display:grid;gap:6px;
+  box-shadow:0 12px 40px rgba(0,0,0,.2),0 0 0 .5px var(--line);animation:toastin .4s var(--spring)}
+@media (min-width:900px){.fu{bottom:96px}}
+.fu-h{display:flex;align-items:center;justify-content:space-between;font:600 12px var(--f-body);text-transform:uppercase;letter-spacing:.05em;color:var(--accent)}
+.fu-h span{display:inline-flex;align-items:center;gap:6px}
+.fu-h .ico{width:15px;height:15px}
+.fu-h .ib{width:28px;height:28px;margin:-6px -6px 0 0}
+.fu-t{font:600 16px/1.3 var(--f-body)}
+.fu-w{font-size:13.5px;color:var(--muted);margin-top:-3px}
+.fu-a{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:2px}
+.fu-a .linkbtn{margin-left:auto;font-size:12.5px;color:var(--muted);font-weight:500}
+.fu-next{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;color:var(--muted);padding-top:6px;border-top:.5px solid var(--line)}
+.fu-next b{color:var(--ink);font-weight:600}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -468,6 +483,7 @@ canvas.fx{position:fixed;inset:0;pointer-events:none;z-index:70;width:100%;heigh
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div id="chest-root"></div>
+<div id="fu-root" aria-live="polite"></div>
 <div id="sheet-root"></div>
 
 <script>
@@ -734,7 +750,8 @@ function completeTask(id,ev){const t=S.tasks[id];if(!t)return;const prev={...t};
   const why=[lucky?(t.mustWinOn===td?'must-win luck':'early-bird luck'):null,mult>1?`combo ×${mult}`:null].filter(Boolean).join(' · ');
   if(r.tokens>0){burst(ev,r.tier!=='rare');showChest(r.tier,r.tokens+comboBonus,false,why)}
   else burst(ev,false);
-  toast(`<b>+${loot.tokens} min</b> screen time${combo>1?` · combo ${combo}`:''}${why&&!(r.tokens>0)?' · '+why:''}`,()=>{saveTask(prev);if(spawned)deleteTask(spawned.id)});
+  toast(`<b>+${loot.tokens} min</b> screen time${combo>1?` · combo ${combo}`:''}${why&&!(r.tokens>0)?' · '+why:''}`,()=>{saveTask(prev);dismissFollowUp();if(spawned)deleteTask(spawned.id)});
+  setTimeout(()=>showFollowUp(prev),900);
   const dn=dayNumbers();
   if(!ringBefore&&dn.closed&&!(S.meta.ringDays||[]).includes(td)){
     const b={at:new Date().toISOString(),tokens:10,ticket:false,why:'Ring closed'};
@@ -1005,6 +1022,50 @@ function viewMatrix(){const open=openTasks().filter(inArea).filter(t=>!['inbox',
      <div class="qkey">${[1,2,3,4].map(q=>`<span><i style="background:var(${QUADS[q].v})"></i>${q} ${QUADS[q].name}</span>`).join('')}</div>
      ${unsorted.length>12?`<div style="color:var(--muted);font-size:13px;padding:0 4px">+${unsorted.length-12} more. Sort these first.</div>`:''}</section>`:''}`}
 
+/* ---------- follow-up hints (free, rule based: no AI) ---------- */
+const shortT=t=>{const x=String(t||'').replace(/\s+/g,' ').trim();return x.length>38?x.slice(0,37).trimEnd()+'…':x};
+const FU_SKIP=/^(follow up|check |confirm|review and|rehearse|send notes|email a short|test the fix|write down|share it|put away)/i;
+function followUpFor(t){const title=String(t.title||'').trim();if(!title||FU_SKIP.test(title))return null;const sh=shortT(title);
+  const mk=(ti,d,size,why)=>({title:ti.slice(0,70),dueInDays:d,size,why});
+  if(t.people&&t.people.length&&/^(meeting|call|online)$/.test(t.kind||''))return mk(`Send notes to ${t.people.length>1?'the attendees':'your guest'}: ${sh}`,0,'S','Share what was decided while it is fresh.');
+  if(/\binvoice\b/i.test(title)&&!/^(pay|paid)\b/i.test(title))return mk(`Check payment received: ${sh}`,7,'S','Give it a week, then chase if needed.');
+  if(/^(call|phone|ring)\b/i.test(title))return mk(`Email a short recap: ${sh}`,0,'S','Put what you agreed in writing.');
+  if(/\b(meeting|meet|sync|stand-?up|catch ?up|workshop|interview|1:1)\b/i.test(title))return mk(`Send notes and action items: ${sh}`,0,'S','Share decisions while they are fresh.');
+  if(/^(send|email|mail|message|text|ask|request|invite|share|forward)\b/i.test(title))return mk(`Follow up if no reply: ${sh}`,3,'S','Give them a few days, then nudge.');
+  if(/^(book|reserve|schedule|arrange)\b/i.test(title))return mk(`Confirm the booking: ${sh}`,2,'S','Reconfirm so nothing falls through.');
+  if(/^(order|purchase)\b/i.test(title))return mk(`Check it arrived: ${sh}`,3,'S','Make sure it actually shows up.');
+  if(/^(submit|file|apply|register|pay|renew)\b/i.test(title))return mk(`Check the status: ${sh}`,7,'S','Make sure it went through.');
+  if(/^(write|draft|prepare|prep|create|design|build|make|plan)\b/i.test(title)){
+    if(/(talk|sermon|message|presentation|slides|speech|teach|lesson|pitch|devotion|set ?list)/i.test(title))return mk(`Rehearse once: ${sh}`,2,'M','Say it out loud before the day.');
+    return mk(`Review and polish: ${sh}`,1,'S','Fresh eyes catch the easy fixes.')}
+  if(/^(research|decide|choose|compare|evaluate)\b/i.test(title))return mk(`Write down the decision and next step: ${sh}`,1,'S','A decision only counts once it is written.');
+  if(/^(fix|repair|debug|resolve)\b/i.test(title))return mk(`Test the fix and tell the team: ${sh}`,1,'S','Close the loop with whoever was waiting.');
+  if(/\b(report|summary|minutes)\b/i.test(title))return mk(`Share it with the people who need it: ${sh}`,0,'S','Work nobody sees is not finished.');
+  if(/^(clean|tidy|organi[sz]e|pack|wash|cook|exercise|gym|run|walk|buy|get|grab|pick up|drop off|return|take|go)\b/i.test(title))return null;
+  // a generic nudge only for tasks that matter: part of a project, high priority, or involving other people
+  if(!(t.projectId||(t.priority||3)<=2||(t.people&&t.people.length)))return null;
+  return mk(`Follow up on: ${sh}`,2,'S','Anything left hanging after this one?')}
+let FU=null,fuTimer=null;
+const fuDue=d=>d===0?'today':d===1?'tomorrow':parseYmd(addDays(today(),d)).toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
+function dismissFollowUp(){clearTimeout(fuTimer);FU=null;const r=document.getElementById('fu-root');if(r)r.innerHTML=''}
+function showFollowUp(t){if(S.meta.hintsOff||!t||t.recur)return;
+  let sug=followUpFor(t);const proj=t.projectId?S.projects[t.projectId]:null;
+  const rest=t.projectId?sortTasks(openTasks().filter(x=>x.projectId===t.projectId&&x.id!==t.id&&x.status==='next')):[];const next=rest[0];
+  if(proj&&!openTasks().some(x=>x.projectId===t.projectId))sug={title:`Write down what worked on ${proj.name}`.slice(0,70),dueInDays:1,size:'S',why:'Project cleared. Capture the lesson while it is fresh.'};
+  if(!sug&&!next)return;
+  FU={t,sug,next:next?next.id:null};const root=document.getElementById('fu-root');if(!root)return;
+  root.innerHTML=`<div class="fu" role="status">
+    <div class="fu-h"><span>${ICON.spark}${sug?'Follow up?':'Up next'}</span><button class="ib" data-act="fu-dismiss" aria-label="Dismiss">${'<svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>'}</button></div>
+    ${sug?`<div class="fu-t">${esc(sug.title)}</div><div class="fu-w">${esc(sug.why)}</div>
+      <div class="fu-a"><button class="btn sm primary" data-act="fu-add">Add · ${fuDue(sug.dueInDays)}</button><button class="btn sm" data-act="fu-dismiss">Not now</button><button class="linkbtn" data-act="fu-off">Turn off hints</button></div>`:''}
+    ${next?`<div class="fu-next"><span>Up next${proj?' in '+esc(proj.name):''}: <b>${esc(next.title)}</b></span><button class="btn sm" data-act="fu-start" data-id="${next.id}">Plan today</button></div>`:''}
+  </div>`;
+  clearTimeout(fuTimer);fuTimer=setTimeout(dismissFollowUp,16000)}
+function addFollowUp(){if(!FU||!FU.sug)return;const{t,sug}=FU;const n={id:'t_'+uid(),createdAt:new Date().toISOString(),title:sug.title,projectId:t.projectId||null,cat:t.cat||null,status:'next',
+    priority:Math.min(t.priority||3,2)||3,size:sug.size,due:addDays(today(),sug.dueInDays),urgent:t.urgent??null,important:t.important??null};
+  if(!t.projectId&&!n.cat)n.cat=S.area==='All'?null:S.area;
+  saveTask(n);toast(`Added: <b>${esc(n.title)}</b> · ${fuDue(sug.dueInDays)}`);dismissFollowUp()}
+
 /* ---------- instant calendar add + invites ---------- */
 function formEvent(){const f=document.querySelector('form[data-form="task"]');const id=f.dataset.id;const t=id?S.tasks[id]:null;const g=k=>document.getElementById(k).value;
   const due=g('e-due')||today(),at=g('e-time')||null,dur=+g('e-dur')||null;let start,end,allDay=false;
@@ -1271,7 +1332,7 @@ function openRewardsSheet(){const st=stats();const rs=rewardsList();const spent=
       <button type="button" class="btn sm primary" data-act="redeem" data-id="${r.id}" ${(st.tokens<r.cost||live)?'disabled':''}>Start</button>
       <button type="button" class="ib" data-act="del-reward" data-id="${r.id}" aria-label="Remove ${esc(r.name)}">${'<svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>'}</button></div>`).join('')}</div>
     <div class="grid2" style="grid-template-columns:minmax(0,1fr) 96px"><div class="field"><label for="r-name">New unlock</label><input id="r-name" placeholder="e.g. Instagram"></div><div class="field"><label for="r-cost">Minutes</label><input id="r-cost" type="number" min="1" value="20"></div></div>
-    <div class="foot"><button type="button" class="btn ghost" data-act="sound">${soundOn?'Sounds on':'Sounds off'}</button>
+    <div class="foot"><span style="display:flex;gap:4px"><button type="button" class="btn ghost" data-act="sound">${soundOn?'Sounds on':'Sounds off'}</button><button type="button" class="btn ghost" data-act="hints-toggle">${S.meta.hintsOff?'Hints off':'Hints on'}</button></span>
       <span style="display:flex;gap:8px"><button type="button" class="btn" data-act="close-sheet">Done</button><button class="btn primary" type="submit">Add</button></span></div>
     ${spent.length?`<div style="font-size:13px;color:var(--muted)">Recently: ${spent.map(x=>esc(x.name)+' · '+x.cost+' min').join(', ')}</div>`:''}
   </form>`)}
@@ -1327,6 +1388,11 @@ document.addEventListener('click',e=>{
   if(a==='set-cat'){const t=S.tasks[id];saveTask({...t,cat:el.dataset.cat,status:'next'});toast(`Filed to ${el.dataset.cat}`);return}
   if(a==='area'){S.area=id;S.openProject=null;try{localStorage.setItem('qd-area',id)}catch{}render();return}
   if(a==='sound'){soundOn=!soundOn;try{localStorage.setItem('qd-sound',soundOn?'on':'off')}catch{}if(soundOn)tone([660,880]);render();if(document.querySelector('[data-form="reward"]'))openRewardsSheet();return}
+  if(a==='fu-add'){addFollowUp();return}
+  if(a==='fu-dismiss'){dismissFollowUp();return}
+  if(a==='fu-start'){toggleToday(id);dismissFollowUp();toast('Planned for today.');return}
+  if(a==='fu-off'){dismissFollowUp();saveMeta({hintsOff:true});toast('Follow-up hints are off. Turn them back on in Spend time.');return}
+  if(a==='hints-toggle'){saveMeta({hintsOff:!S.meta.hintsOff});openRewardsSheet();return}
   if(a==='cal-add'){addToCalendar(el.dataset.w);return}
   if(a==='cal-resync'){const t=S.tasks[id];if(t){saveTask({...t,calAdded:null});toast('This task syncs from Quest Deck again.');closeSheet()}return}
   if(a==='sugg-paste'){suggPaste();return}
