@@ -123,6 +123,40 @@
     return { all, day, timed: all - day, at: new Date() };
   }
   window.qdCalendarRefresh = refreshCalendar;
+
+  /* ---------- backup: export everything to a file, or restore from one ---------- */
+  const BK_COLLS = ['projects', 'tasks', 'meta'];
+  async function exportBackup() {
+    const docs = [];
+    for (const coll of BK_COLLS) (await fetchColl(coll)).forEach(r => docs.push({ coll, id: r.id, data: r.data }));
+    const name = 'quest-deck-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+    const file = new File([JSON.stringify({ app: 'quest-deck', version: 1, exportedAt: new Date().toISOString(), docs }, null, 1)], name, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] }) && /iPhone|iPad|Android/.test(navigator.userAgent)) {
+      try { await navigator.share({ files: [file], title: 'Quest Deck backup' }); return docs.length; } catch (e) { if (e && e.name === 'AbortError') return docs.length; }
+    }
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    return docs.length;
+  }
+  function parseBackup(text) {
+    let j; try { j = JSON.parse(text); } catch { throw new Error('This file is not a Quest Deck backup.'); }
+    if (!j || j.app !== 'quest-deck' || !Array.isArray(j.docs)) throw new Error('This file is not a Quest Deck backup.');
+    const docs = j.docs.filter(d => d && BK_COLLS.includes(d.coll) && typeof d.id === 'string' && d.id.length >= 1 && d.id.length <= 120 && d.data && typeof d.data === 'object' && !Array.isArray(d.data));
+    if (!docs.length) throw new Error('No Quest Deck data found in that file.');
+    return docs;
+  }
+  async function importBackup(text) {
+    const docs = parseBackup(text), now = new Date().toISOString();
+    for (let i = 0; i < docs.length; i += 100) {
+      const chunk = docs.slice(i, i + 100).map(d => ({ user_id: user.id, coll: d.coll, id: d.id, data: d.data, updated_at: now }));
+      const { error } = await sb.from('qd_docs').upsert(chunk);
+      if (error) throw error;
+    }
+    BK_COLLS.forEach(schedule);
+    return docs.length;
+  }
+  window.qdBackup = { export: exportBackup, parse: parseBackup, import: importBackup };
   window.qdUserEmail = () => (user && user.email) || '';
   // asks Claude (through your Supabase function) for task ideas for a project
   window.qdSuggest = async payload => {
@@ -151,6 +185,10 @@
       </ol>
       <div class="field"><span class="lbl">Calendar status</span><div id="cal-status" style="font-size:14px;color:var(--muted)">Tap Refresh to update your slots and check the feed.</div></div>
       <button class="btn" id="cal-refresh" type="button">Refresh calendar</button>
+      <div class="field"><span class="lbl">Backup</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="bk-export" type="button">Export backup</button><button class="btn sm" id="bk-import" type="button">Import backup</button></div>
+        <input type="file" id="bk-file" accept="application/json,.json" hidden>
+        <div id="bk-status" style="font-size:12.5px;color:var(--muted)">Saves all your projects and tasks to a file, or restores them from one.</div></div>
       <div class="field"><span class="lbl">Or copy the link (Mac, Google Calendar, Outlook)</span><input id="feed-url" readonly value="${esc(url)}"></div>
       <p style="margin:0;font-size:12px;color:var(--muted)">Anyone with this link can see your task titles. Keep it to yourself.</p>
       <div class="foot"><span style="font-size:13px;color:var(--muted);align-self:center">Signed in as ${esc(user.email)}</span>
@@ -159,6 +197,19 @@
     $('feed-url').addEventListener('focus', e => e.target.select());
     $('feed-copy').addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(url); $('feed-copy').textContent = 'Copied'; } catch { $('feed-url').select(); }
+    });
+    const bk = t => { $('bk-status').textContent = t; };
+    $('bk-export').addEventListener('click', async () => {
+      bk('Preparing your backup…');
+      try { const n = await exportBackup(); bk(`Backup ready: ${n} items saved to a file.`); } catch { bk('Could not make the backup. Check your connection and try again.'); }
+    });
+    $('bk-import').addEventListener('click', () => $('bk-file').click());
+    $('bk-file').addEventListener('change', async e => {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      bk('Restoring…');
+      try { const n = await importBackup(await f.text()); bk(`Restored ${n} items. They appear in a moment.`); }
+      catch (err) { bk(err && err.message && /backup|Quest Deck/.test(err.message) ? err.message : 'Could not restore from that file.'); }
+      e.target.value = '';
     });
     $('cal-refresh').addEventListener('click', async () => {
       const b = $('cal-refresh'), st = $('cal-status');
