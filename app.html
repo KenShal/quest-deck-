@@ -434,6 +434,9 @@ canvas.fx{position:fixed;inset:0;pointer-events:none;z-index:70;width:100%;heigh
 .sg b{font-weight:500;font-size:16px}
 .sg small{color:var(--muted);font-size:13px}
 #p-suggest.busy .ico{animation:spin .9s linear infinite}
+.steps2{margin:0 0 8px;padding-left:20px;font-size:14px;display:grid;gap:3px;color:var(--ink)}
+.steps2 a{color:var(--accent);font-weight:600}
+.sugg textarea{width:100%;border:0;border-radius:10px;padding:10px 12px;background:var(--surface);font-size:15px;margin:4px 0 8px;outline:none;resize:vertical}
 .calbtns{display:flex;flex-wrap:wrap;gap:8px}
 .fine{font-size:12.5px;color:var(--muted);line-height:1.4;padding:2px 2px 0}
 .linkbtn{border:0;background:none;color:var(--accent);font:inherit;font-weight:600;padding:0;text-decoration:underline}
@@ -1041,6 +1044,42 @@ function addToCalendar(w){const f=document.querySelector('form[data-form="task"]
 
 /* ---------- AI task suggestions ---------- */
 let SUGG=[];
+const SUGG_RULES=`You are a practical project planner inside a personal task app. Reply with the concrete tasks needed to move the project forward.
+
+Return ONLY valid JSON, no other text, in this exact shape:
+{"tasks":[{"title":string,"kind":string|null,"size":"S"|"M"|"L","priority":1|2|3,"dueInDays":number|null,"urgent":boolean,"important":boolean}]}
+
+Rules:
+- 6 to 12 tasks, in the order they should happen.
+- Each title is a concrete next action starting with a verb, under 70 characters.
+- kind is one of: event, meeting, call, online, outside, focus, home, or null. "event" only for a real occasion that takes the whole day.
+- size: S about 15 minutes, M about 30, L an hour or more.
+- priority: 1 critical, 2 important, 3 normal. Use 1 sparingly.
+- dueInDays: days from today when it should be done, spread sensibly before any deadline; null if no date makes sense.
+- urgent means it needs doing soon; important means it matters for the outcome.
+- Do not repeat tasks under "Already planned".`;
+function suggPrompt(){const g=k=>document.getElementById(k)?.value||'';const pid=document.querySelector('form[data-form="project"]')?.dataset.id;
+  const existing=pid?tasks().filter(t=>t.projectId===pid).map(t=>t.title):[];
+  return [SUGG_RULES,'',`Project: ${g('p-name').trim()||'(unnamed)'}`,`Area: ${document.getElementById('p-area')?.dataset.v||''}`,`Today: ${today()}`,g('p-deadline')?`Deadline: ${g('p-deadline')}`:'No deadline set.',`Description:\n${g('p-desc').trim()||'(none given)'}`,existing.length?`Already planned:\n- ${existing.join('\n- ')}`:''].filter(x=>x!==undefined).join('\n')}
+function cleanSugg(txt){txt=String(txt||'').trim();let j=null;
+  const tries=[txt.replace(/^```(?:json)?\s*|\s*```$/g,''),(txt.match(/\{[\s\S]*\}/)||[''])[0],(txt.match(/\[[\s\S]*\]/)||[''])[0]];
+  for(const t of tries){if(!t)continue;try{j=JSON.parse(t);break}catch{}}
+  const arr=Array.isArray(j)?j:Array.isArray(j&&j.tasks)?j.tasks:null;if(!arr)return null;
+  const out=arr.slice(0,14).map(t=>({title:String(t&&t.title||'').slice(0,120).trim(),kind:t&&KINDL[t.kind]?t.kind:null,size:['S','M','L'].includes(t&&t.size)?t.size:'M',priority:[1,2,3].includes(+(t&&t.priority))?+t.priority:3,
+    dueInDays:t&&t.dueInDays!=null&&Number.isFinite(+t.dueInDays)?Math.max(0,Math.min(365,Math.round(+t.dueInDays))):null,urgent:!!(t&&t.urgent),important:!!(t&&t.important)})).filter(t=>t.title);
+  return out.length?out:null}
+async function suggPaste(){const box=document.getElementById('p-sugg');if(!box)return;
+  const g=k=>document.getElementById(k)?.value||'';if(!g('p-name').trim()&&!g('p-desc').trim()){toast('Write a short description first.');return}
+  const prompt=suggPrompt();let copied=false;try{await navigator.clipboard.writeText(prompt);copied=true}catch{}
+  box.innerHTML=`<div class="sugg"><div class="sugg-h">Use your Claude chat (free)<small>${copied?'The prompt is copied.':'Copy the prompt below.'}</small></div>
+    <ol class="steps2"><li>Open a Claude chat and paste the prompt. <a href="https://claude.ai/new" target="_blank" rel="noopener">Open Claude</a></li><li>Copy Claude's whole reply and paste it here.</li></ol>
+    ${copied?'':`<textarea readonly rows="5" id="p-prompt" onfocus="this.select()">${esc(prompt)}</textarea>`}
+    <textarea id="p-paste" rows="4" placeholder="Paste Claude's reply here"></textarea>
+    <button type="button" class="btn primary" data-act="sugg-parse">Add suggestions</button><div id="p-paste-msg" class="fine"></div></div>`;
+  document.getElementById('p-paste').focus()}
+function suggParse(){const v=document.getElementById('p-paste')?.value||'';const r=cleanSugg(v);const msg=document.getElementById('p-paste-msg');
+  if(!r){if(msg)msg.textContent="That doesn't look like the task list. Ask Claude to reply with only the JSON, then paste it again.";return}
+  SUGG=r;document.getElementById('p-sugg').innerHTML=renderSugg()}
 function renderSugg(){return `<div class="sugg"><div class="sugg-h">Suggested tasks <small>Untick any you don't want. They are added when you save.</small></div>${SUGG.map((t,i)=>`<label class="sg"><input type="checkbox" data-sg="${i}" checked><span><b>${esc(t.title)}</b><small>${[t.kind&&KINDL[t.kind],SIZE[t.size],t.dueInDays!=null?(t.dueInDays===0?'today':'in '+t.dueInDays+' days'):null,t.priority===1?'Critical':t.priority===2?'Important':null].filter(Boolean).join(' · ')}</small></span></label>`).join('')}</div>`}
 async function suggestTasks(){const box=document.getElementById('p-sugg'),btn=document.getElementById('p-suggest');if(!box||!btn||btn.disabled)return;
   const g=k=>document.getElementById(k)?.value||'';const pid=document.querySelector('form[data-form="project"]')?.dataset.id;
@@ -1051,7 +1090,8 @@ async function suggestTasks(){const box=document.getElementById('p-sugg'),btn=do
   try{const existing=pid?tasks().filter(t=>t.projectId===pid).map(t=>t.title):[];
     const r=await window.qdSuggest({name,description,deadline:g('p-deadline')||null,area:document.getElementById('p-area')?.dataset.v,today:today(),existing});
     SUGG=r.tasks||[];box.innerHTML=SUGG.length?renderSugg():`<div class="empty-note">No suggestions came back. Add a few more details and try again.</div>`}
-  catch(e){const m={no_key:'Almost ready. The AI key has not been added to Supabase yet. Add it as a secret named ANTHROPIC_API_KEY, then try again.',bad_key:'Supabase rejected the AI key. Check the ANTHROPIC_API_KEY secret and try again.',busy:'The AI is busy. Try again in a minute.',empty:'Write a short description first.',signin:'Sign in on the Quest Deck site to use suggestions.'}[e.message]||'Could not get suggestions just now. Try again.';
+  catch(e){if(e.message==='no_key'){box.innerHTML=`<div class="empty-note">No AI key is set up yet, so use the free route: copy a prompt, paste it into your Claude chat, and paste the reply back.</div>`;suggPaste();return}
+    const m={bad_key:'Supabase rejected the AI key. Check the secret and try again.',busy:'The AI is busy. Try again in a minute.',empty:'Write a short description first.',signin:'Sign in on the Quest Deck site to use suggestions.'}[e.message]||'Could not get suggestions just now. Try again.';
     box.innerHTML=`<div class="empty-note">${m}</div>`}
   finally{btn.disabled=false;btn.classList.remove('busy');btn.innerHTML=orig}}
 
@@ -1205,7 +1245,7 @@ function openProjectSheet(id){const p=id?S.projects[id]:{name:'',area:S.area==='
     <div class="field"><label for="p-name">Name</label><input id="p-name" value="${esc(p.name)}" required></div>
     <div class="field"><span class="lbl">Category</span>${segHtml('p-area',catOfProject(p)||'Work',CATS.map(c=>[c,c,catDot(c)]))}</div>
     <div class="field"><label for="p-desc">Describe the project</label><textarea id="p-desc" rows="4" placeholder="What is it, who is involved, what needs to happen?">${esc(p.desc||'')}</textarea></div>
-    <div id="p-sugg-wrap"><button type="button" class="btn" data-act="suggest" id="p-suggest">${ICON.spark}Suggest tasks</button><div id="p-sugg"></div></div>
+    <div id="p-sugg-wrap"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="btn" data-act="suggest" id="p-suggest">${ICON.spark}Suggest tasks</button><button type="button" class="linkbtn" data-act="sugg-paste">Free: use Claude chat instead</button></div><div id="p-sugg"></div></div>
     <div class="grid2"><div class="field"><label for="p-deadline">Deadline</label><input type="date" id="p-deadline" value="${p.deadline||''}"></div>
       <div class="field"><label for="p-goal">What does done look like?</label><input id="p-goal" value="${esc(p.goal||'')}" placeholder="One sentence"></div></div>
     <div class="field"><span class="lbl">Color</span><div class="swatches" id="p-color" data-v="${p.color||'c1'}">${COLORS.map(c=>`<button type="button" data-act="swatch" data-id="${c}" aria-label="Color ${c}" aria-pressed="${(p.color||'c1')===c}" style="background:var(--${c})"></button>`).join('')}</div></div>
@@ -1289,6 +1329,8 @@ document.addEventListener('click',e=>{
   if(a==='sound'){soundOn=!soundOn;try{localStorage.setItem('qd-sound',soundOn?'on':'off')}catch{}if(soundOn)tone([660,880]);render();if(document.querySelector('[data-form="reward"]'))openRewardsSheet();return}
   if(a==='cal-add'){addToCalendar(el.dataset.w);return}
   if(a==='cal-resync'){const t=S.tasks[id];if(t){saveTask({...t,calAdded:null});toast('This task syncs from Quest Deck again.');closeSheet()}return}
+  if(a==='sugg-paste'){suggPaste();return}
+  if(a==='sugg-parse'){suggParse();return}
   if(a==='suggest'){suggestTasks();return}
   if(a==='quad-move'){openQuadSheet(id);return}
   if(a==='q-set'){setQuad(id,+el.dataset.q);closeSheet();return}
