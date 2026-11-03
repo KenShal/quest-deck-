@@ -30,9 +30,12 @@ function fold(line: string) {
 const alarm = (trigger: string, text: string) => ["BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${esc(text)}`, `TRIGGER:${trigger}`, "END:VALARM"];
 
 const utc = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
-const KIND: Record<string, string> = { meeting: "Meeting", call: "Call", online: "Online", outside: "Out & about", focus: "Deep work", home: "At home" };
+const KIND: Record<string, string> = { event: "Event", meeting: "Meeting", call: "Call", online: "Online", outside: "Out & about", focus: "Deep work", home: "At home" };
+
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "*" };
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   const token = new URL(req.url).searchParams.get("token") ?? "";
   if (!/^[0-9a-f-]{36}$/i.test(token)) return new Response("Not found", { status: 404 });
   const { data: feed } = await sb.from("qd_feed").select("user_id").eq("token", token).maybeSingle();
@@ -54,16 +57,16 @@ Deno.serve(async (req) => {
     "X-WR-CALNAME:Quest Deck", "X-WR-CALDESC:Tasks and deadlines from Quest Deck",
     "REFRESH-INTERVAL;VALUE=DURATION:PT15M", "X-PUBLISHED-TTL:PT15M",
   ];
-  const event = (uid: string, day: string, summary: string, desc: string, alarms: string[][]) => {
+  const event = (uid: string, day: string, summary: string, desc: string, alarms: string[][], busy = false) => {
     L.push("BEGIN:VEVENT", `UID:${uid}@quest-deck`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${ymd(day)}`, `DTEND;VALUE=DATE:${ymd(nextDay(day))}`,
-      `SUMMARY:${esc(summary)}`, `DESCRIPTION:${esc(desc)}`, "TRANSP:TRANSPARENT", ...alarms.flat(), "END:VEVENT");
+      `SUMMARY:${esc(summary)}`, `DESCRIPTION:${esc(desc)}`, busy ? "TRANSP:OPAQUE" : "TRANSP:TRANSPARENT", ...alarms.flat(), "END:VEVENT");
   };
 
   // a task with a booked time slot becomes a real timed event that blocks that slot in the calendar
-  const timed = (uid: string, startIso: string, mins: number, summary: string, desc: string, alarms: string[][]) => {
+  const timed = (uid: string, startIso: string, mins: number, summary: string, desc: string, alarms: string[][], busy = true) => {
     const end = new Date(new Date(startIso).getTime() + mins * 60000).toISOString();
     L.push("BEGIN:VEVENT", `UID:${uid}@quest-deck`, `DTSTAMP:${stamp}`, `DTSTART:${utc(startIso)}`, `DTEND:${utc(end)}`,
-      `SUMMARY:${esc(summary)}`, `DESCRIPTION:${esc(desc)}`, "TRANSP:OPAQUE", ...alarms.flat(), "END:VEVENT");
+      `SUMMARY:${esc(summary)}`, `DESCRIPTION:${esc(desc)}`, busy ? "TRANSP:OPAQUE" : "TRANSP:TRANSPARENT", ...alarms.flat(), "END:VEVENT");
   };
 
   for (const t of tasks) {
@@ -74,8 +77,16 @@ Deno.serve(async (req) => {
     const desc = [p ? `Project: ${p.name}` : "", t.status === "waiting" && t.waitingOn ? `Waiting on: ${t.waitingOn}` : "", t.recur ? `Repeats: ${t.recur}` : "", KIND[t.kind] ? `Type: ${KIND[t.kind]}` : "", t.notes || ""].filter(Boolean).join("\n");
     const startMs = t.startAt ? Date.parse(t.startAt) : NaN;
     if (!Number.isNaN(startMs) && startMs >= Date.now() - 2 * 864e5) {
-      const mins = Math.max(5, Number(t.dur) || 30);
-      timed(`task-${t.id}`, t.startAt, mins, tag + t.title, desc, [alarm("-PT10M", `In 10 minutes: ${t.title}`), alarm("PT0S", `Now: ${t.title}`)]);
+      const mins = Math.max(5, Number(t.auto ? (t.autoDur || t.dur) : t.dur) || 30);
+      if (t.auto) {
+        // slot picked by Quest Deck: shows on the calendar but does not mark you busy
+        const al = [alarm("-PT5M", `Time to start: ${t.title}`)];
+        const warn = t.warn != null && t.warn !== "" ? Number(t.warn) || 0 : ({ 1: 7, 2: 3, 3: 1 } as Record<number, number>)[t.priority || 3] ?? 1;
+        if (warn > 1) al.push(alarm(`-P${warn}D`, `Heads-up, due in ${warn} days: ${t.title}`));
+        timed(`task-${t.id}`, t.startAt, mins, tag + t.title, desc, al, false);
+      } else {
+        timed(`task-${t.id}`, t.startAt, mins, tag + t.title, desc, [alarm("-PT10M", `In 10 minutes: ${t.title}`), alarm("PT0S", `Now: ${t.title}`)], true);
+      }
       continue;
     }
     if (t.due && t.due >= cutoff) {
@@ -84,7 +95,7 @@ Deno.serve(async (req) => {
       // same heads-up window the app uses: explicit warn, else 7/3/1 days by priority
       const warn = t.warn != null && t.warn !== "" ? Number(t.warn) || 0 : ({ 1: 7, 2: 3, 3: 1 } as Record<number, number>)[t.priority || 3] ?? 1;
       if (warn > 0) al.push(alarm(`-PT${warn * 24 - 9}H`, `Heads-up, due in ${warn} day${warn > 1 ? "s" : ""}: ${t.title}`));
-      event(`task-${t.id}`, t.due, tag + t.title, desc, al);
+      event(`task-${t.id}`, t.due, tag + t.title, desc, al, t.kind === "event");
     }
     const planned = t.mustWinOn || t.todayOn;
     if (planned && planned >= cutoff && planned !== t.due) {
@@ -97,6 +108,6 @@ Deno.serve(async (req) => {
   }
   L.push("END:VCALENDAR");
   return new Response(L.map(fold).join("\r\n") + "\r\n", {
-    headers: { "Content-Type": "text/calendar; charset=utf-8", "Cache-Control": "no-cache", "Content-Disposition": 'inline; filename="quest-deck.ics"' },
+    headers: { ...CORS, "Content-Type": "text/calendar; charset=utf-8", "Cache-Control": "no-cache", "Content-Disposition": 'inline; filename="quest-deck.ics"' },
   });
 });

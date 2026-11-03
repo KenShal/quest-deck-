@@ -112,13 +112,15 @@
     if (!url) { overlay(`<div class="sheet"><h2>Calendar &amp; account</h2><p>Could not load your calendar link. Check your connection and try again.</p></div>`, true); return; }
     overlay(`<div class="sheet">
       <h2>Put Quest Deck in your iPhone Calendar</h2>
-      <p style="margin:0;font-size:14px">Every task with a due date, today's plan and project deadlines show up in Calendar with reminders: 9am on the day, plus a heads-up before important ones.</p>
+      <p style="margin:0;font-size:14px">Tasks land in time slots on their due day: a time you choose, or a free slot Quest Deck picks. Tasks typed as <b>Event</b> block the whole day. Missed ones can be rescheduled in the app.</p>
       <a class="btn primary" href="${esc(url.replace(/^https:/, 'webcal:'))}" style="justify-content:center;text-decoration:none">Subscribe on this iPhone</a>
       <ol style="margin:0;padding-left:20px;font-size:14px;display:grid;gap:4px">
         <li>Tap the button above, then <b>Subscribe</b>.</li>
         <li>Turn <b>Remove Alerts</b> off, so the reminders buzz.</li>
         <li>Tap <b>Add</b>. Changes show up within about 15 minutes to an hour.</li>
       </ol>
+      <div class="field"><span class="lbl">Calendar status</span><div id="cal-status" style="font-size:14px;color:var(--muted)">Tap Refresh to update your slots and check the feed.</div></div>
+      <button class="btn" id="cal-refresh" type="button">Refresh calendar</button>
       <div class="field"><span class="lbl">Or copy the link (Mac, Google Calendar, Outlook)</span><input id="feed-url" readonly value="${esc(url)}"></div>
       <p style="margin:0;font-size:12px;color:var(--muted)">Anyone with this link can see your task titles. Keep it to yourself.</p>
       <div class="foot"><span style="font-size:13px;color:var(--muted);align-self:center">Signed in as ${esc(user.email)}</span>
@@ -127,6 +129,22 @@
     $('feed-url').addEventListener('focus', e => e.target.select());
     $('feed-copy').addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(url); $('feed-copy').textContent = 'Copied'; } catch { $('feed-url').select(); }
+    });
+    const settle = async () => { for (let i = 0; i < 40; i++) { if (!Object.values(pending).some(n => n > 0)) return; await new Promise(r => setTimeout(r, 250)); } };
+    $('cal-refresh').addEventListener('click', async () => {
+      const b = $('cal-refresh'), st = $('cal-status');
+      b.disabled = true; b.textContent = 'Refreshing…'; st.textContent = 'Updating your time slots…';
+      try {
+        if (window.qdRefreshCalendar) await window.qdRefreshCalendar();
+        await settle();
+        const r = await fetch(url + '&t=' + Date.now(), { cache: 'no-store' });
+        if (!r.ok) throw new Error('feed ' + r.status);
+        const ics = await r.text();
+        const all = (ics.match(/BEGIN:VEVENT/g) || []).length, day = (ics.match(/DTSTART;VALUE=DATE:/g) || []).length;
+        const at = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        st.innerHTML = `<b style="color:var(--ink)">Feed updated at ${esc(at)}.</b> ${all} items: ${all - day} in time slots, ${day} all-day.<br>Your iPhone picks changes up on its own schedule. To pull them right now, open Calendar, tap Calendars, then pull down.`;
+      } catch { st.textContent = 'Could not reach the calendar feed. Check your connection and try again.'; }
+      finally { b.disabled = false; b.textContent = 'Refresh calendar'; }
     });
     $('sign-out').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
   }

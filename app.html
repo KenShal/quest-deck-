@@ -401,14 +401,19 @@ const SIZE={S:'Small',M:'Medium',L:'Large'};
 const TIERS={common:'Common',rare:'Rare',epic:'Epic',legendary:'Legendary'};
 const TIERVAR={common:'--accent',rare:'--accent',epic:'--purple',legendary:'--orange'};
 const TIERRANK={common:0,rare:1,epic:2,legendary:3};
-const KINDS=[['meeting','Meeting'],['call','Call'],['online','Online'],['outside','Out & about'],['focus','Deep work'],['home','At home']];
+const KINDS=[['event','Event'],['meeting','Meeting'],['call','Call'],['online','Online'],['outside','Out & about'],['focus','Deep work'],['home','At home']];
 const KINDL=Object.fromEntries(KINDS);
 const DURS=[15,30,45,60,90,120,180];
 const fmtTime=hm=>{if(!hm)return'';const[h,m]=hm.split(':').map(Number);return new Date(2000,0,1,h,m).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}).replace(/\s/g,'\u202f').toLowerCase()};
 const fmtDur=m=>m>=60?(m%60?`${Math.floor(m/60)}h ${m%60}m`:`${Math.floor(m/60)}h`):`${m}m`;
 // a booked slot is stored as local date + time ("due" + "at") and as a UTC instant ("startAt"), which the calendar feed turns into a timed event
-function stampStart(t){if(t.at&&t.due){const d=new Date(`${t.due}T${t.at}:00`);if(!isNaN(d)){t.startAt=d.toISOString();t.dur=t.dur||30;return t}}t.startAt=null;return t}
-const isMissed=t=>!!t.startAt&&t.status!=='done'&&t.status!=='someday'&&t.status!=='inbox'&&Date.parse(t.startAt)+(t.dur||30)*60000<Date.now();
+function stampStart(t){if(t.at&&t.due){const d=new Date(`${t.due}T${t.at}:00`);if(!isNaN(d)){t.startAt=d.toISOString();t.dur=t.dur||30;t.auto=false;return t}}t.startAt=null;t.auto=false;return t}
+const isMissed=t=>!t.auto&&!!t.startAt&&t.status!=='done'&&t.status!=='someday'&&t.status!=='inbox'&&Date.parse(t.startAt)+(t.dur||30)*60000<Date.now();
+// tasks without a chosen time are placed into free slots on their day (9am to 6pm, spilling into the evening if full). Events with no time block the whole day.
+const WORK_START=9*60,WORK_END=18*60,WORK_OVER=22*60,AUTO_DUR={S:15,M:30,L:60};
+const mins=d=>d.getHours()*60+d.getMinutes();
+const slotHm=t=>{if(t.at)return t.at;if(t.auto&&t.startAt){const d=new Date(t.startAt);return pad(d.getHours())+':'+pad(d.getMinutes())}return null};
+const slotKey=t=>{const h=slotHm(t);return h&&(t.auto||t.due===today())?h:'99:99'};
 const COMBO_MIN=30;
 const BASE_MIN={S:5,M:10,L:20};
 const fmtMin=n=>n>=60?`${Math.floor(n/60)}h ${n%60}m`:`${n} min`;
@@ -475,7 +480,7 @@ function parseQuick(text){
   t=t.replace(/\s!([123])(?=\s)/g,(m,n)=>{o.priority=+n;return ' '});
   t=t.replace(/\s\*([sml])(?=\s)/gi,(m,z)=>{o.size=z.toUpperCase();return ' '});
   t=t.replace(/\s@wait(ing)?(?=\s)/gi,()=>{o.status='waiting';return ' '});
-  t=t.replace(/\s@(meeting|meet|call|online|zoom|outside|out|errand|focus|deep|home)(?=\s)/gi,(m,k)=>{k=k.toLowerCase();o.kind={meet:'meeting',zoom:'online',out:'outside',errand:'outside',deep:'focus'}[k]||k;return ' '});
+  t=t.replace(/\s@(event|meeting|meet|call|online|zoom|outside|out|errand|focus|deep|home)(?=\s)/gi,(m,k)=>{k=k.toLowerCase();o.kind={meet:'meeting',zoom:'online',out:'outside',errand:'outside',deep:'focus'}[k]||k;return ' '});
   t=t.replace(/\s(?:for\s)?(\d{1,3})\s?(min|mins|m|h|hr|hrs|hour|hours)(?=\s)(?!\s*(?:left|late))/gi,(m,n,u)=>{const v=u[0].toLowerCase()==='h'?+n*60:+n;if(v>=5&&v<=480){o.dur=v;return ' '}return m});
   t=t.replace(/\s(?:at\s)?(\d{1,2})(?::(\d{2}))?\s?(am|pm)(?=\s)/i,(m,h,mi,ap)=>{h=+h%12+(ap.toLowerCase()==='pm'?12:0);o.at=pad(h)+':'+(mi||'00');return ' '});
   t=t.replace(/\s(?:at\s)?([01]?\d|2[0-3]):([0-5]\d)(?=\s)/,(m,h,mi)=>{o.at=pad(+h)+':'+mi;return ' '});
@@ -495,6 +500,7 @@ function parseQuick(text){
   if(o.at&&!o.due){const nowHm=pad(new Date().getHours())+':'+pad(new Date().getMinutes());o.due=o.at>nowHm?td:addDays(td,1)}
   if(o.recur&&!o.due)o.due=firstDue(o);
   if(o.at)stampStart(o);
+  if(o.kind==='event'&&!o.due)o.due=td;
   if(!o.status)o.status=(o.projectId||o.newProject||o.due||o.cat)?'next':'inbox';
   return o}
 
@@ -649,6 +655,35 @@ function toggleToday(id){const t=S.tasks[id];const td=today();saveTask({...t,tod
 function pushTomorrow(id){const t=S.tasks[id];const tm=addDays(today(),1);
   const n={...t,todayOn:tm,mustWinOn:null,carried:(t.carried||0)+1};if(t.due&&t.due<=today())n.due=tm;stampStart(n);saveTask(n)}
 
+/* ---------- auto time slots ---------- */
+function autoLayout(){
+  if(S.mode==='connecting')return 0;
+  const now=new Date(),td=today(),nowMin=mins(now);let changed=0;
+  const save=n=>{changed++;saveTask(n)};
+  const isoAt=(day,m)=>new Date(`${day}T${pad(Math.floor(m/60))}:${pad(m%60)}:00`).toISOString();
+  const eligible=t=>t.due&&!['inbox','waiting','someday','done'].includes(t.status)&&!(t.kind==='event'&&!t.at);
+  openTasks().forEach(t=>{if(t.auto&&(!eligible(t)||t.at)){const n={...t,auto:false};if(!t.at)n.startAt=null;save(n)}});
+  const items=openTasks().filter(eligible);
+  const busy={};const add=(d,a,b)=>(busy[d]=busy[d]||[]).push([a,b]);
+  const free=(d,a,b)=>!(busy[d]||[]).some(([x,y])=>a<y&&b>x);
+  items.filter(t=>t.at&&t.startAt).forEach(t=>{const d=new Date(t.startAt);add(ymd(d),mins(d),mins(d)+(t.dur||30))});
+  const byDay={};items.filter(t=>!t.at).forEach(t=>{const eff=t.due<td?td:t.due;(byDay[eff]=byDay[eff]||[]).push(t)});
+  const rank=t=>[t.mustWinOn===td?0:1,t.priority||3,t.due||'',t.createdAt||''];
+  const cmp=(a,b)=>{const x=rank(a),y=rank(b);for(let i=0;i<x.length;i++){if(x[i]<y[i])return -1;if(x[i]>y[i])return 1}return 0};
+  Object.keys(byDay).sort().forEach(day=>{
+    const list=byDay[day].sort(cmp);const start=day===td?Math.max(WORK_START,Math.ceil((nowMin+1)/15)*15):WORK_START;const todo=[];
+    list.forEach(t=>{const dur=t.dur||AUTO_DUR[t.size]||30;
+      if(t.auto&&t.startAt&&t.autoDur===dur){const d=new Date(t.startAt),sm=mins(d);
+        if(ymd(d)===day&&(day!==td||sm+dur>nowMin)&&free(day,sm,sm+dur)){add(day,sm,sm+dur);return}}
+      todo.push([t,dur])});
+    todo.forEach(([t,dur])=>{let at=null;
+      for(let c=start;c+dur<=WORK_OVER;c+=15){if(free(day,c,c+dur)){at=c;break}}
+      if(at==null)at=Math.max(0,WORK_OVER-dur);
+      add(day,at,at+dur);const st=isoAt(day,at);
+      if(!t.auto||t.startAt!==st||t.autoDur!==dur)save({...t,auto:true,at:null,startAt:st,autoDur:dur})})});
+  return changed}
+window.qdRefreshCalendar=async()=>{const n=autoLayout();await new Promise(r=>setTimeout(r,400));return n};
+
 /* ---------- render ---------- */
 let raf=0;function render(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;draw()})}
 function draw(){
@@ -661,6 +696,7 @@ function draw(){
   const counts={};CATS.forEach(c=>counts[c]=openTasks().filter(t=>catOf(t)===c&&t.status!=='someday').length);
   document.getElementById('cats').innerHTML=['All',...CATS].map(c=>`<button class="cat" data-act="area" data-id="${c}" aria-pressed="${S.area===c}">${c!=='All'?`<i style="background:var(${CATVAR[c]})"></i>`:''}${c}${c!=='All'?`<span class="n">${counts[c]}</span>`:''}</button>`).join('');
   const titles={today:'Today',inbox:'Inbox',projects:'Projects',upcoming:'Upcoming',review:'Review'};
+  setTimeout(autoLayout,0);
   document.getElementById('lt-title').textContent=titles[S.view]||'Today';
   document.getElementById('lt-eyebrow').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('hud').hidden=S.view!=='today';
@@ -701,8 +737,8 @@ setInterval(()=>{if(!document.querySelector('.sheet'))render()},60000);
 function taskRow(t,opts={}){const td=today();const p=projOf(t);const done=t.status==='done';const cat=catOf(t);
   const meta=[];
   if(!opts.hideProject){if(p)meta.push(`<span>${catDot(cat)}${esc(p.name)}</span>`);else if(cat)meta.push(`<span>${catDot(cat)}${cat}</span>`)}
-  if(t.due&&!done){const d=dueLabel(t.due);const miss=isMissed(t);meta.push(`<span class="${miss?'late':d.c}">${ICON.clock}${miss?'Missed · ':''}${d.t}${t.at?' · '+fmtTime(t.at):''}</span>`)}
-  if(t.kind&&!done)meta.push(`<span>${KINDL[t.kind]||''}${t.at&&t.dur?' · '+fmtDur(t.dur):''}</span>`);
+  if(t.due&&!done){const d=dueLabel(t.due);const miss=isMissed(t);meta.push(`<span class="${miss?'late':d.c}">${ICON.clock}${miss?'Missed · ':''}${d.t}${slotHm(t)?' · '+fmtTime(slotHm(t)):''}</span>`)}
+  if(t.kind&&!done)meta.push(`<span>${KINDL[t.kind]||''}${t.kind==='event'&&!t.at?' · all day':t.at&&t.dur?' · '+fmtDur(t.dur):''}</span>`);
   if(t.resched&&!done)meta.push(`<span>Rescheduled ${t.resched}×</span>`);
   if(t.status==='waiting')meta.push(`<span>${ICON.wait}Waiting on ${esc(t.waitingOn||'someone')}</span>`);
   if(t.recur)meta.push(`<span>${ICON.repeat}${esc(recurLabel(t))}</span>`);
@@ -763,7 +799,7 @@ function viewToday(){const td=today();
   if(!tasks().length&&!projects().length)return `<div class="empty-note"><b>Your deck is empty.</b> Type everything on your mind into the box above, one item at a time. Add <code>+work</code>, <code>+personal</code> or <code>+ministry</code> to file it, and a date like <code>fri</code> to schedule it. Unsorted items land in the Inbox.</div>`;
   const rd=radar();const wins=tasks().filter(t=>t.mustWinOn===td&&inArea(t));
   const winSlots=wins.slice(0,3).map((t,i)=>`<div class="win ${t.status==='done'?'won':''}"><span class="slot">MUST-WIN ${i+1}</span>${taskRow(t,{today:false,bare:true})}</div>`).join('');
-  const todayList=sortTasks(openTasks().filter(inArea).filter(t=>t.mustWinOn!==td&&(t.todayOn===td||(t.due&&t.due<=td&&t.status!=='inbox')))).sort((a,b)=>(a.due===td&&a.at?a.at:'99:99')<(b.due===td&&b.at?b.at:'99:99')?-1:(a.due===td&&a.at?a.at:'99:99')>(b.due===td&&b.at?b.at:'99:99')?1:0);
+  const todayList=sortTasks(openTasks().filter(inArea).filter(t=>t.mustWinOn!==td&&(t.todayOn===td||(t.due&&t.due<=td&&t.status!=='inbox')))).sort((a,b)=>slotKey(a)<slotKey(b)?-1:slotKey(a)>slotKey(b)?1:0);
   const suggest=sortTasks(openTasks().filter(inArea).filter(t=>t.status==='next'&&t.todayOn!==td&&t.mustWinOn!==td&&!(t.due&&t.due<=td))).slice(0,3);
   const doneToday=tasks().filter(inArea).filter(t=>t.status==='done'&&isoDay(t.doneAt)===td);
   const evening=new Date().getHours()>=18;const closed=S.meta.reports?.[td]?.closed;
@@ -905,8 +941,9 @@ function openTaskSheet(id,preset){const isNew=!id;const t=isNew?{title:'',status
       <div class="field"><label for="e-due">${t.recur?'Next date':'Due date'}</label><input type="date" id="e-due" value="${t.due||''}"></div></div>
     <div class="field" id="e-days-wrap" ${t.recur==='custom'?'':'hidden'}><span class="lbl">On these days</span><div class="dows" id="e-days">${DOWL.map((d,i)=>`<button type="button" data-act="dow" data-id="${i}" aria-pressed="${days.includes(i)}">${d}</button>`).join('')}</div></div>
     <div class="field"><span class="lbl">Type of task</span>${segHtml('e-kind',t.kind||'',KINDS.map(([v,l])=>[v,l]))}</div>
-    <div class="grid2"><div class="field"><label for="e-time">Book a time slot</label><input type="time" id="e-time" value="${t.at||''}"></div>
-      <div class="field"><label for="e-dur">Length</label><select id="e-dur">${DURS.map(m=>`<option value="${m}" ${(t.dur||30)===m?'selected':''}>${fmtDur(m)}</option>`).join('')}</select></div></div>
+    <div class="grid2"><div class="field"><label for="e-time">Choose a time</label><input type="time" id="e-time" value="${t.at||''}"></div>
+      <div class="field"><label for="e-dur">Length</label><select id="e-dur"><option value="">Auto</option>${DURS.map(m=>`<option value="${m}" ${(t.dur||0)===m?'selected':''}>${fmtDur(m)}</option>`).join('')}</select></div></div>
+    <div style="font-size:13px;color:var(--muted);margin-top:-6px;padding:0 2px">${t.auto&&t.startAt?`Auto-booked for ${fmtTime(slotHm(t))}. `:''}Leave the time empty: tasks get a free slot on the due date automatically, and an <b>Event</b> blocks the whole day.</div>
     <div class="grid2"><div class="field"><label for="e-pri">Priority</label><select id="e-pri">${[[1,'1 · Critical'],[2,'2 · Important'],[3,'3 · Normal']].map(([v,l])=>`<option value="${v}" ${(t.priority||3)==v?'selected':''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label for="e-warn">Warn me (days before)</label><input type="number" min="0" max="60" id="e-warn" value="${t.warn??''}" placeholder="${warnOf(t)} (auto)"></div></div>
     <div class="grid2"><div class="field"><label for="e-size">Size</label><select id="e-size">${Object.entries(SIZE).map(([v,l])=>`<option value="${v}" ${(t.size||'M')===v?'selected':''}>${l}</option>`).join('')}</select></div>
@@ -1038,8 +1075,8 @@ document.addEventListener('submit',e=>{e.preventDefault();const f=e.target;
     if(recur==='custom'&&!recurDays.length){toast('Pick at least one day for this recurring task.');return}
     const n={...t,title:g('e-title').trim()||t.title||'Untitled',projectId:g('e-project')||null,cat:document.getElementById('e-cat').dataset.v||null,status,due:g('e-due')||null,warn:g('e-warn')===''?null:+g('e-warn'),
       priority:+g('e-pri'),size:g('e-size'),waitingOn:g('e-wait').trim(),recur,recurDays:recur==='custom'?recurDays:null,notes:g('e-notes'),
-      kind:document.getElementById('e-kind').dataset.v||null,at:g('e-time')||null,dur:+g('e-dur')||30};
-    if(n.at&&!n.due)n.due=today();
+      kind:document.getElementById('e-kind').dataset.v||null,at:g('e-time')||null,dur:+g('e-dur')||null,auto:false};
+    if((n.at||n.kind==='event')&&!n.due)n.due=today();
     stampStart(n);
     if(n.recur&&!n.due)n.due=firstDue(n);
     if(status==='waiting'&&t.status!=='waiting')n.waitingSince=new Date().toISOString();
