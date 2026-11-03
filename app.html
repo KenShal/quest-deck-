@@ -69,20 +69,20 @@ nav.tabs .count.hot{background:var(--danger);color:var(--surface)}
 }
 
 /* HUD */
-.hud{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);padding:14px 16px;display:grid;gap:14px;grid-template-columns:auto minmax(0,1fr) auto;align-items:center}
-@media (max-width:560px){.hud{grid-template-columns:auto minmax(0,1fr)}.hud .wallet{grid-column:1/-1;justify-self:stretch}}
-.ring{position:relative;width:76px;height:76px}
-.ring svg{width:76px;height:76px;transform:rotate(-90deg)}
+.hud{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);padding:10px 14px;display:grid;gap:12px;grid-template-columns:auto minmax(0,1fr) auto;align-items:center}
+@media (max-width:560px){.hud{grid-template-columns:auto minmax(0,1fr) auto}}
+.ring{position:relative;width:56px;height:56px}
+.ring svg{width:56px;height:56px;transform:rotate(-90deg)}
 .ring circle{fill:none;stroke-width:8}
 .ring .trk{stroke:var(--sunk)}
 .ring .val{stroke:var(--ok);stroke-linecap:round;transition:stroke-dashoffset .7s cubic-bezier(.2,.8,.2,1)}
 .ring.closed .val{stroke:var(--coin)}
 .ring .num{position:absolute;inset:0;display:grid;place-items:center;text-align:center;line-height:1.05}
-.ring .num b{font:700 18px var(--f-mono)}
-.ring .num small{font-size:10px;color:var(--muted);font-weight:600;display:block}
+.ring .num b{font:700 14px var(--f-mono)}
+.ring .num small{display:none!important;font-size:10px;color:var(--muted);font-weight:600;display:block}
 .hud-main{display:grid;gap:6px;min-width:0}
-.hud-title{font:800 18px var(--f-display)}
-.hud-line{font-size:14px;color:var(--muted)}
+.hud-title{display:none}
+.hud-line{font-size:14px;color:var(--muted);line-height:1.3}
 .hud-line b{color:var(--ink)}
 .hud-stats{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted)}
 .hud-stats b{color:var(--ink);font-family:var(--f-mono);font-weight:700}
@@ -91,15 +91,15 @@ nav.tabs .count.hot{background:var(--danger);color:var(--surface)}
 .flame{color:var(--muted)}.flame.lit{color:var(--danger)}.flame.lit .ico{fill:currentColor}
 .flame.risk{color:var(--warn)}
 .combo{color:var(--accent);font-weight:700}
-.wallet{display:flex;align-items:center;gap:10px;border:0;background:var(--sunk);border-radius:12px;padding:8px 12px;justify-self:end}
-.coin{width:26px;height:26px;border-radius:50%;background:var(--coin);display:grid;place-items:center;color:#3a2600;font:800 13px var(--f-mono);box-shadow:inset 0 -2px 0 rgba(0,0,0,.15)}
-.wallet b{font:700 18px var(--f-mono);display:block;line-height:1.1}
-.wallet small{font-size:11px;color:var(--muted);display:block;text-align:left}
+.wallet{display:flex;align-items:center;gap:8px;border:0;background:var(--sunk);border-radius:99px;padding:4px 12px 4px 5px;justify-self:end}
+.coin{width:22px;height:22px;border-radius:50%;background:var(--coin);display:grid;place-items:center;color:#3a2600;font:800 13px var(--f-mono);box-shadow:inset 0 -2px 0 rgba(0,0,0,.15)}
+.wallet b{font:700 15px var(--f-mono);display:block;line-height:1.1}
+.wallet small{display:none!important;font-size:11px;color:var(--muted);display:block;text-align:left}
 .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 
 /* category switch */
-.cats{display:flex;gap:6px;flex-wrap:wrap}
-.cat{border:1.5px solid var(--line);background:var(--surface);border-radius:99px;padding:6px 14px;font-size:13.5px;font-weight:700;color:var(--muted);display:inline-flex;align-items:center;gap:7px}
+.cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.cats::-webkit-scrollbar{display:none}
+.cat{border:1.5px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 12px;font-size:13px;font-weight:700;color:var(--muted);display:inline-flex;align-items:center;gap:6px;flex:none}
 .cat i{width:9px;height:9px;border-radius:3px;display:inline-block}
 .cat[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .cat .n{font:700 11px var(--f-mono);opacity:.75}
@@ -116,9 +116,10 @@ nav.tabs .count.hot{background:var(--danger);color:var(--surface)}
 .btn.sm{padding:6px 10px;font-size:13px;border-radius:8px}
 .hint{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px}
 .hint code,.empty-note code{font:600 11.5px var(--f-mono);background:var(--sunk);padding:1px 6px;border-radius:5px;color:var(--ink)}
-.preview{font-size:12.5px;color:var(--accent);min-height:18px}
+.preview{font-size:12.5px;color:var(--accent);min-height:0}
+.capture .hint{display:none}.capture:focus-within .hint{display:flex}
 
-main{display:grid;gap:18px;min-width:0}
+main{display:grid;gap:14px;min-width:0}
 section{display:grid;gap:10px;min-width:0}
 .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .sec-head h2{font-size:17px;font-weight:800}
@@ -133,7 +134,7 @@ section{display:grid;gap:10px;min-width:0}
 .alert.critical .tag{color:var(--danger)}.alert.warning .tag{color:var(--warn)}.alert.info .tag{color:var(--accent)}
 .alert .msg{flex:1;min-width:0;font-size:14px}
 .alert .msg small{display:block;color:var(--muted);font-size:12.5px}
-@media (max-width:520px){.alert{flex-wrap:wrap}.alert .tag{width:auto}.alert .msg{flex-basis:100%;order:2}.alert .btn{order:1;margin-left:auto}}
+.alert .tag{display:none}.alert .msg small{display:none}.alert .msg{font-weight:600}
 .allclear{background:var(--surface);border-radius:10px;padding:12px 14px;color:var(--ok);font-weight:600;font-size:14px;display:flex;gap:8px;align-items:center}
 
 /* must-wins */
@@ -289,11 +290,11 @@ canvas.fx{position:fixed;inset:0;pointer-events:none;z-index:70;width:100%;heigh
     <div class="cats" id="cats" role="group" aria-label="Category"></div>
     <div class="capture">
       <form id="qa" autocomplete="off">
-        <input id="qa-input" placeholder="Capture anything… e.g. Send invoice +work !1 fri" aria-label="Quick add">
+        <input id="qa-input" placeholder="Add a task…" aria-label="Quick add">
         <button class="btn primary" type="submit">Add</button>
       </form>
       <div class="preview" id="qa-preview"></div>
-      <div class="hint"><code>+work +personal +ministry</code><code>#project</code><code>!1 !2 !3</code><code>today · fri · in 3d · nov 15</code><code>daily · weekdays · weekly · every mon wed</code><code>@waiting</code><code>*s *m *l</code></div>
+      <div class="hint"><code>+work</code><code>#project</code><code>!1</code><code>fri</code><code>daily</code></div>
     </div>
     <div id="view" style="display:grid;gap:20px;min-width:0"></div>
   </main>
@@ -555,7 +556,7 @@ function draw(){
   drawHud();
   const v=document.getElementById('view');
   const html={today:viewToday,inbox:viewInbox,projects:viewProjects,upcoming:viewUpcoming,review:viewReview}[S.view]();
-  const banner=S.mode==='local'?`<div class="banner">You are seeing example data on this device only. Open Quest Deck from claude.ai while signed in to sync your real lists between PC and phone.</div>`:'';
+  const banner='';
   v.innerHTML=banner+html}
 
 function drawHud(){const st=stats();const dn=dayNumbers();const c=comboNow();
@@ -572,9 +573,8 @@ function drawHud(){const st=stats();const dn=dayNumbers();const c=comboNow();
      <div class="hud-title">${greet}</div>
      <div class="hud-line">${line}</div>
      <div class="hud-stats">
-       <span class="stat flame ${st.todayDone?'lit':st.atRisk?'risk':''}">${ICON.flame}<b>${st.streak}</b> day streak${streakTxt?' · '+streakTxt:''}</span>
+       <span class="stat flame ${st.todayDone?'lit':st.atRisk?'risk':''}">${ICON.flame}<b>${st.streak}</b> day streak${streakTxt&&st.atRisk?' · '+streakTxt:''}</span>
        ${c?`<span class="stat combo">${ICON.bolt}Combo ${c.n}${comboMult(c.n+1)>1?` · next ×${comboMult(c.n+1)}`:` · ${3-c.n} more for ×2`} · <span class="mono" data-until="${c.until}"></span></span>`:''}
-       <button class="ib" data-act="sound" aria-label="${soundOn?'Mute sounds':'Turn sounds on'}" title="${soundOn?'Mute':'Sound on'}" style="width:26px;height:26px">${soundOn?ICON.sound:ICON.mute}</button>
      </div>
    </div>
    <button class="wallet" data-act="rewards" aria-label="Open rewards"><span class="coin">T</span><span><b>${st.tokens}</b><small>tokens${st.tickets>0?` · ${st.tickets} ticket${st.tickets>1?'s':''}`:''}</small></span></button>`;
@@ -643,22 +643,20 @@ function viewToday(){const td=today();
   if(S.mode==='connecting')return `<div class="empty-note">Loading your quests…</div>`;
   if(!tasks().length&&!projects().length)return `<div class="empty-note"><b>Your deck is empty.</b> Type everything on your mind into the box above, one item at a time. Add <code>+work</code>, <code>+personal</code> or <code>+ministry</code> to file it, and a date like <code>fri</code> to schedule it. Unsorted items land in the Inbox.</div>`;
   const rd=radar();const wins=tasks().filter(t=>t.mustWinOn===td&&inArea(t));
-  const winSlots=[0,1,2].map(i=>{const t=wins[i];if(!t)return `<div class="win empty"><span class="slot">MUST-WIN ${i+1}</span>Star a task below. Must-win chests roll twice and keep the better one.</div>`;
-    return `<div class="win ${t.status==='done'?'won':''}"><span class="slot">MUST-WIN ${i+1}</span>${taskRow(t,{today:false,bare:true})}</div>`}).join('');
+  const winSlots=wins.slice(0,3).map((t,i)=>`<div class="win ${t.status==='done'?'won':''}"><span class="slot">MUST-WIN ${i+1}</span>${taskRow(t,{today:false,bare:true})}</div>`).join('');
   const todayList=sortTasks(openTasks().filter(inArea).filter(t=>t.mustWinOn!==td&&(t.todayOn===td||(t.due&&t.due<=td&&t.status!=='inbox'))));
-  const suggest=sortTasks(openTasks().filter(inArea).filter(t=>t.status==='next'&&t.todayOn!==td&&t.mustWinOn!==td&&!(t.due&&t.due<=td))).slice(0,6);
+  const suggest=sortTasks(openTasks().filter(inArea).filter(t=>t.status==='next'&&t.todayOn!==td&&t.mustWinOn!==td&&!(t.due&&t.due<=td))).slice(0,3);
   const doneToday=tasks().filter(inArea).filter(t=>t.status==='done'&&isoDay(t.doneAt)===td);
   const evening=new Date().getHours()>=18;const closed=S.meta.reports?.[td]?.closed;
   const showRep=S.showReport||(evening&&!closed);
   return `${showRep?reportHtml():''}
-   <section><div class="sec-head"><h2>Radar</h2><span class="sub">What will surprise you if you ignore it</span></div>
-     <div class="radar">${rd.length?rd.slice(0,7).map(alertRow).join(''):`<div class="allclear">${ICON.check} All clear. Nothing is sneaking up on you.</div>`}</div></section>
-   <section><div class="sec-head"><h2>Today's 3 must-wins</h2><span class="sub">The three that make today a good day</span></div><div class="wins">${winSlots}</div></section>
-   <section><div class="sec-head"><h2>Also today</h2><span class="sub">${todayList.length} planned</span></div>
-     ${todayList.length?listOf(todayList):`<div class="empty-note">Nothing else planned. Tap the sun on a task to plan it for today.</div>`}</section>
-   ${suggest.length?`<section><div class="sec-head"><h2>Pick from your next actions</h2><button class="btn sm" data-act="lucky">Pick one for me</button></div>${listOf(suggest)}</section>`:''}
+   ${rd.length?`<section><div class="sec-head"><h2>Heads-up</h2>${rd.length>2?`<span class="sub">+${rd.length-2} more</span>`:''}</div>
+     <div class="radar">${rd.slice(0,2).map(alertRow).join('')}</div></section>`:''}
+   ${winSlots?`<section><div class="sec-head"><h2>Must-wins</h2></div><div class="wins">${winSlots}</div></section>`:''}
+   ${todayList.length?`<section><div class="sec-head"><h2>Today</h2></div>${listOf(todayList)}</section>`:''}
+   ${suggest.length?`<section><div class="sec-head"><h2>Up next</h2><button class="btn sm" data-act="lucky">Pick one for me</button></div>${listOf(suggest)}</section>`:''}
    ${doneToday.length?`<section><div class="sec-head"><h2>Done today</h2><span class="sub">${doneToday.reduce((s,t)=>s+(t.loot?.tokens||0),0)} tokens earned</span></div>${listOf(doneToday)}</section>`:''}
-   ${showRep?'':`<div><button class="btn" data-act="show-report">${ICON.moon}End my day: see the honest report</button></div>`}`}
+   ${showRep?'':`<div><button class="btn ghost" data-act="show-report">${ICON.moon}End my day</button></div>`}`}
 
 function viewInbox(){const items=openTasks().filter(t=>t.status==='inbox').sort((a,b)=>(a.createdAt||'')<(b.createdAt||'')?-1:1);
   return `<section><div class="sec-head"><h2>Inbox</h2><span class="sub">${items.length} to sort · capture fast, decide later</span></div>
