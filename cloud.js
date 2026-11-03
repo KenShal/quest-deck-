@@ -101,11 +101,28 @@
   }
 
   /* ---------- calendar + account sheet ---------- */
+  let cachedUrl = null;
   async function feedUrl() {
+    if (cachedUrl) return cachedUrl;
     let { data } = await sb.from('qd_feed').select('token').maybeSingle();
     if (!data) ({ data } = await sb.from('qd_feed').insert({ user_id: user.id }).select('token').single());
-    return data ? FEED + data.token : null;
+    cachedUrl = data ? FEED + data.token : null;
+    return cachedUrl;
   }
+  // re-place time slots, wait for this device's writes to land, then read the live feed back
+  const settle = async () => { for (let i = 0; i < 40; i++) { if (!Object.values(pending).some(n => n > 0)) return; await new Promise(r => setTimeout(r, 250)); } };
+  async function refreshCalendar() {
+    const url = await feedUrl();
+    if (!url) throw new Error('no feed link');
+    if (window.qdRefreshCalendar) await window.qdRefreshCalendar();
+    await settle();
+    const r = await fetch(url + '&t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('feed ' + r.status);
+    const ics = await r.text();
+    const all = (ics.match(/BEGIN:VEVENT/g) || []).length, day = (ics.match(/DTSTART;VALUE=DATE:/g) || []).length;
+    return { all, day, timed: all - day, at: new Date() };
+  }
+  window.qdCalendarRefresh = refreshCalendar;
   async function showAccount() {
     overlay(`<div class="sheet"><h2>Calendar &amp; account</h2><p style="color:var(--muted)">Loading your calendar link…</p></div>`, true);
     const url = await feedUrl().catch(() => null);
@@ -130,19 +147,13 @@
     $('feed-copy').addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(url); $('feed-copy').textContent = 'Copied'; } catch { $('feed-url').select(); }
     });
-    const settle = async () => { for (let i = 0; i < 40; i++) { if (!Object.values(pending).some(n => n > 0)) return; await new Promise(r => setTimeout(r, 250)); } };
     $('cal-refresh').addEventListener('click', async () => {
       const b = $('cal-refresh'), st = $('cal-status');
       b.disabled = true; b.textContent = 'Refreshing…'; st.textContent = 'Updating your time slots…';
       try {
-        if (window.qdRefreshCalendar) await window.qdRefreshCalendar();
-        await settle();
-        const r = await fetch(url + '&t=' + Date.now(), { cache: 'no-store' });
-        if (!r.ok) throw new Error('feed ' + r.status);
-        const ics = await r.text();
-        const all = (ics.match(/BEGIN:VEVENT/g) || []).length, day = (ics.match(/DTSTART;VALUE=DATE:/g) || []).length;
-        const at = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-        st.innerHTML = `<b style="color:var(--ink)">Feed updated at ${esc(at)}.</b> ${all} items: ${all - day} in time slots, ${day} all-day.<br>Your iPhone picks changes up on its own schedule. To pull them right now, open Calendar, tap Calendars, then pull down.`;
+        const r = await refreshCalendar();
+        const at = r.at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        st.innerHTML = `<b style="color:var(--ink)">Feed updated at ${esc(at)}.</b> ${r.all} items: ${r.timed} in time slots, ${r.day} all-day.<br>Your iPhone picks changes up on its own schedule. To pull them right now, open Calendar, tap Calendars, then pull down.`;
       } catch { st.textContent = 'Could not reach the calendar feed. Check your connection and try again.'; }
       finally { b.disabled = false; b.textContent = 'Refresh calendar'; }
     });
