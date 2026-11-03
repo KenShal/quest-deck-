@@ -407,7 +407,7 @@ const RECURS=[['','Never'],['daily','Every day'],['weekdays','Weekdays (Mon–Fr
 const DOWS=['sun','mon','tue','wed','thu','fri','sat'];
 const DOWL=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTHS=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
-const DEFAULT_REWARDS=[{id:'r1',name:'Social media',cost:15},{id:'r2',name:'YouTube',cost:30},{id:'r3',name:'Gaming',cost:45},{id:'r4',name:'One episode',cost:45},{id:'r5',name:'Anything you like',cost:60}];
+const DEFAULT_REWARDS=[{id:'r1',name:'Social media',cost:15},{id:'r2',name:'Games',cost:30}];
 
 const S={projects:{},tasks:{},meta:{},mode:'connecting',db:null,view:'today',area:'All',openProject:null,showReport:false,coach:null};
 try{const a=localStorage.getItem('qd-area');if(a&&(a==='All'||CATS.includes(a)))S.area=a}catch{}
