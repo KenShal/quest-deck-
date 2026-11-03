@@ -157,7 +157,7 @@ nav.tabs .count.hot{background:var(--pink);color:#fff}
 :root[data-theme="dark"] .cat[aria-pressed="true"]{background:#636366}
 
 /* ---------- capture ---------- */
-.capture{display:grid;gap:6px}
+.capture{display:grid;gap:6px;position:relative}
 .capture form{position:relative;display:block}
 .capture input{width:100%;border:0;background:var(--surface);border-radius:12px;padding:13px 52px 13px 16px;font-size:17px;outline:none;transition:box-shadow .2s}
 .capture input::placeholder{color:var(--faint)}
@@ -166,7 +166,7 @@ nav.tabs .count.hot{background:var(--pink);color:#fff}
 .capture .btn.primary .ico{width:18px;height:18px;stroke-width:2.6}
 .preview{font-size:13px;color:var(--accent);min-height:0;padding:0 4px}
 .preview:empty{display:none}
-.hint{font-size:12px;color:var(--muted);display:none;flex-wrap:wrap;gap:4px 8px;padding:0 4px}
+.hint{font-size:12px;color:var(--muted);display:none;flex-wrap:wrap;gap:4px 8px;padding:8px 10px;position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:6;background:var(--surface);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.12);pointer-events:none}
 .capture:focus-within .hint{display:flex}
 .hint code,.empty-note code{font:500 12px var(--f-mono);background:var(--sunk);padding:2px 7px;border-radius:6px;color:var(--ink)}
 
@@ -238,6 +238,8 @@ section{display:grid;gap:8px;min-width:0}
 .ib:hover{background:var(--sunk);color:var(--ink)}
 .ib.on{color:var(--orange)}.ib.on .ico{fill:currentColor}
 .ib.today.on{color:var(--accent)}
+.ib.resched{color:var(--pink);background:color-mix(in srgb,var(--pink) 12%,transparent)}
+.seg{row-gap:8px}
 .tier{font:600 12px var(--f-body)}
 .empty-note{background:var(--surface);border-radius:var(--r);padding:16px;color:var(--muted);font-size:15px;line-height:1.45}
 .empty-note b{color:var(--ink)}
@@ -378,7 +380,7 @@ canvas.fx{position:fixed;inset:0;pointer-events:none;z-index:70;width:100%;heigh
         <button class="btn primary" type="submit" aria-label="Add task"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
       </form>
       <div class="preview" id="qa-preview"></div>
-      <div class="hint"><code>+work</code><code>#project</code><code>!1</code><code>fri</code><code>daily</code></div>
+      <div class="hint"><code>+work</code><code>#project</code><code>!1</code><code>fri</code><code>3pm</code><code>30m</code><code>@call</code><code>@meeting</code><code>@online</code><code>@outside</code></div>
     </div>
     <div id="view" style="display:grid;gap:20px;min-width:0"></div>
   </main>
@@ -418,6 +420,14 @@ const SIZE={S:'Small',M:'Medium',L:'Large'};
 const TIERS={common:'Common',rare:'Rare',epic:'Epic',legendary:'Legendary'};
 const TIERVAR={common:'--accent',rare:'--accent',epic:'--purple',legendary:'--orange'};
 const TIERRANK={common:0,rare:1,epic:2,legendary:3};
+const KINDS=[['meeting','Meeting'],['call','Call'],['online','Online'],['outside','Out & about'],['focus','Deep work'],['home','At home']];
+const KINDL=Object.fromEntries(KINDS);
+const DURS=[15,30,45,60,90,120,180];
+const fmtTime=hm=>{if(!hm)return'';const[h,m]=hm.split(':').map(Number);return new Date(2000,0,1,h,m).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}).replace(/\s/g,'\u202f').toLowerCase()};
+const fmtDur=m=>m>=60?(m%60?`${Math.floor(m/60)}h ${m%60}m`:`${Math.floor(m/60)}h`):`${m}m`;
+// a booked slot is stored as local date + time ("due" + "at") and as a UTC instant ("startAt"), which the calendar feed turns into a timed event
+function stampStart(t){if(t.at&&t.due){const d=new Date(`${t.due}T${t.at}:00`);if(!isNaN(d)){t.startAt=d.toISOString();t.dur=t.dur||30;return t}}t.startAt=null;return t}
+const isMissed=t=>!!t.startAt&&t.status!=='done'&&t.status!=='someday'&&t.status!=='inbox'&&Date.parse(t.startAt)+(t.dur||30)*60000<Date.now();
 const COMBO_MIN=30;
 const BASE_MIN={S:5,M:10,L:20};
 const fmtMin=n=>n>=60?`${Math.floor(n/60)}h ${n%60}m`:`${n} min`;
@@ -484,6 +494,10 @@ function parseQuick(text){
   t=t.replace(/\s!([123])(?=\s)/g,(m,n)=>{o.priority=+n;return ' '});
   t=t.replace(/\s\*([sml])(?=\s)/gi,(m,z)=>{o.size=z.toUpperCase();return ' '});
   t=t.replace(/\s@wait(ing)?(?=\s)/gi,()=>{o.status='waiting';return ' '});
+  t=t.replace(/\s@(meeting|meet|call|online|zoom|outside|out|errand|focus|deep|home)(?=\s)/gi,(m,k)=>{k=k.toLowerCase();o.kind={meet:'meeting',zoom:'online',out:'outside',errand:'outside',deep:'focus'}[k]||k;return ' '});
+  t=t.replace(/\s(?:for\s)?(\d{1,3})\s?(min|mins|m|h|hr|hrs|hour|hours)(?=\s)(?!\s*(?:left|late))/gi,(m,n,u)=>{const v=u[0].toLowerCase()==='h'?+n*60:+n;if(v>=5&&v<=480){o.dur=v;return ' '}return m});
+  t=t.replace(/\s(?:at\s)?(\d{1,2})(?::(\d{2}))?\s?(am|pm)(?=\s)/i,(m,h,mi,ap)=>{h=+h%12+(ap.toLowerCase()==='pm'?12:0);o.at=pad(h)+':'+(mi||'00');return ' '});
+  t=t.replace(/\s(?:at\s)?([01]?\d|2[0-3]):([0-5]\d)(?=\s)/,(m,h,mi)=>{o.at=pad(+h)+':'+mi;return ' '});
   t=t.replace(/\severy((?:[\s,]+(?:and\s+)?(?:sun|mon|tue|wed|thu|fri|sat)[a-z]*)+)(?=\s)/i,(m,days)=>{
     const ds=[...new Set((days.toLowerCase().match(/sun|mon|tue|wed|thu|fri|sat/g)||[]).map(d=>DOWS.indexOf(d)))].sort();o.recur='custom';o.recurDays=ds;return ' '});
   t=t.replace(/\s(every\s?day|daily|weekdays|every\s?weekday|every\s?2\s?weeks|biweekly|every\s?other\s?week|every\s?week|weekly|every\s?month|monthly)(?=\s)/i,(m,w)=>{const x=w.toLowerCase().replace(/\s/g,'');
@@ -497,7 +511,9 @@ function parseQuick(text){
   t=t.replace(/\s(?:on |by )?(sun|mon|tue|wed|thu|fri|sat)[a-z]*(?=\s)/i,(m,d)=>{const target=DOWS.indexOf(d.toLowerCase());let n=(target-parseYmd(td).getDay()+7)%7;if(n===0)n=7;return setDue(addDays(td,n))});
   t=t.replace(/\s(?:on |by )?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]* (\d{1,2})(?=\s)/i,(m,mo,d)=>{const now=new Date();let dt=new Date(now.getFullYear(),MONTHS.indexOf(mo.toLowerCase()),+d);if(ymd(dt)<td)dt.setFullYear(dt.getFullYear()+1);return setDue(ymd(dt))});
   o.title=t.trim().replace(/\s+/g,' ');
+  if(o.at&&!o.due){const nowHm=pad(new Date().getHours())+':'+pad(new Date().getMinutes());o.due=o.at>nowHm?td:addDays(td,1)}
   if(o.recur&&!o.due)o.due=firstDue(o);
+  if(o.at)stampStart(o);
   if(!o.status)o.status=(o.projectId||o.newProject||o.due||o.cat)?'next':'inbox';
   return o}
 
@@ -560,9 +576,10 @@ function projectInfo(p){const ts=tasks().filter(t=>t.projectId===p.id);const ope
 
 function radar(){const td=today();const items=[];
   openTasks().filter(inArea).forEach(t=>{
+    if(isMissed(t)&&t.due===td)items.push({sev:'critical',tag:'Missed',msg:`Missed: ${t.title}`,sub:`Was booked for ${fmtTime(t.at)}.`,task:t.id,act:'resched',rank:-1});
     if(t.carried>=2)items.push({sev:'warning',tag:'Avoiding',msg:t.title,sub:`Pushed to tomorrow ${t.carried} times. It is probably too big or unclear. Split it into a 10-minute first step, or drop it.`,task:t.id,rank:.8});
     if(!t.due||t.status==='inbox')return;const n=diffDays(t.due,td);
-    if(n<0)items.push({sev:'critical',tag:'Overdue',msg:t.title,sub:`Was due ${fmtDate(t.due)}. Do it, reschedule it, or drop it.`,task:t.id,rank:0+n/1000});
+    if(n<0)items.push({sev:'critical',tag:'Overdue',msg:t.title,sub:`Was due ${fmtDate(t.due)}. Do it, reschedule it, or drop it.`,task:t.id,act:'resched',rank:0+n/1000});
     else if(n<=warnOf(t)&&n>0&&t.todayOn!==td&&t.mustWinOn!==td&&!t.recur)items.push({sev:'warning',tag:'Heads-up',msg:t.title,sub:`Due ${fmtDate(t.due)}, ${n} day${n>1?'s':''} out. Start it now so it is not a last-minute surprise.`,task:t.id,act:'today',rank:1+n/100})});
   openTasks().filter(inArea).filter(t=>t.status==='waiting').forEach(t=>{const since=isoDay(t.waitingSince||t.createdAt);const n=since?diffDays(td,since):0;
     if(n>=4)items.push({sev:'warning',tag:'Follow up',msg:t.title,sub:`Waiting on ${t.waitingOn||'someone'} for ${n} days. Send a nudge.`,task:t.id,rank:2})});
@@ -607,7 +624,7 @@ function completeTask(id,ev){const t=S.tasks[id];if(!t)return;const prev={...t};
   const ringBefore=dayNumbers().closed;
   saveTask({...t,prevStatus:t.status,status:'done',doneAt:new Date().toISOString(),loot,carried:0});
   let spawned=null;
-  if(t.recur){spawned={...t,id:'t_'+uid(),due:nextDue(t),status:'next',createdAt:new Date().toISOString(),todayOn:null,mustWinOn:null,doneAt:null,loot:null,carried:0};delete spawned.prevStatus;saveTask(spawned)}
+  if(t.recur){spawned={...t,id:'t_'+uid(),due:nextDue(t),status:'next',createdAt:new Date().toISOString(),todayOn:null,mustWinOn:null,doneAt:null,loot:null,carried:0,resched:0};delete spawned.prevStatus;stampStart(spawned);saveTask(spawned)}
   chestSound(r.tier,combo);buzz(r.tier==='common'?15:[20,40,30]);
   const why=[lucky?(t.mustWinOn===td?'must-win luck':'early-bird luck'):null,mult>1?`combo ×${mult}`:null].filter(Boolean).join(' · ');
   if(r.tokens>0){burst(ev,r.tier!=='rare');showChest(r.tier,r.tokens+comboBonus,false,why)}
@@ -626,9 +643,30 @@ function toggleMustWin(id){const t=S.tasks[id];const td=today();
   const n=tasks().filter(x=>x.mustWinOn===td).length;
   if(n>=3){toast('You already have 3 must-wins today. Unstar one first. Three is the limit on purpose.');return}
   saveTask({...t,mustWinOn:td,todayOn:td,status:t.status==='inbox'?'next':t.status})}
+function warnOverlap(n){if(!n.startAt)return;const a=Date.parse(n.startAt),b=a+(n.dur||30)*60000;
+  const c=openTasks().find(x=>x.id!==n.id&&x.startAt&&Date.parse(x.startAt)<b&&Date.parse(x.startAt)+(x.dur||30)*60000>a);
+  if(c)setTimeout(()=>toast(`Heads-up: that overlaps <b>${esc(c.title)}</b> at ${fmtTime(c.at)}.`),700)}
+function reschedule(id,due,at){const t=S.tasks[id];if(!t)return;const n={...t,due,at,resched:(t.resched||0)+1,todayOn:due===today()?due:t.todayOn};stampStart(n);
+  closeSheet();saveTask(n);warnOverlap(n);toast(`Rescheduled to <b>${due===today()?'today':fmtDate(due)}${at?' at '+fmtTime(at):''}</b>. Your calendar updates shortly.`)}
+function openRescheduleSheet(id){const t=S.tasks[id];if(!t)return;const now=new Date();const td=today();
+  const roundUp=(d,step=15)=>{d=new Date(d);d.setMinutes(Math.ceil(d.getMinutes()/step)*step,0,0);return d};
+  const hm=d=>pad(d.getHours())+':'+pad(d.getMinutes());
+  const in1=roundUp(new Date(+now+3600000));const opts=[];
+  if(ymd(in1)===td)opts.push(['In 1 hour',td,hm(in1)]);
+  const eve=new Date(now);eve.setHours(18,0,0,0);if(eve>now&&ymd(eve)===td)opts.push(['This evening, 6:00 pm',td,'18:00']);
+  const tm=addDays(td,1);opts.push(['Tomorrow, same time',tm,t.at||'09:00']);
+  opts.push(['Tomorrow morning, 9:00 am',tm,'09:00']);
+  sheet(`<form class="sheet" data-form="resched" data-id="${id}" role="dialog" aria-label="Reschedule">
+    <h2>Reschedule</h2>
+    <div style="color:var(--muted);font-size:15px;margin-top:-6px">${esc(t.title)}${t.at?` · was ${t.due===td?'today':fmtDate(t.due)} at ${fmtTime(t.at)}`:''}</div>
+    <div class="rewards">${opts.map(([l,d,h])=>`<div class="reward"><span class="name">${l}</span><button type="button" class="btn sm primary" data-act="rs-quick" data-id="${id}" data-d="${d}" data-h="${h}">Pick</button></div>`).join('')}</div>
+    <div class="grid2"><div class="field"><label for="rs-date">Another day</label><input type="date" id="rs-date" min="${td}" value="${t.due&&t.due>=td?t.due:tm}"></div>
+      <div class="field"><label for="rs-time">Time</label><input type="time" id="rs-time" value="${t.at||'09:00'}"></div></div>
+    <div class="foot"><button type="button" class="btn ghost" data-act="close-sheet">Cancel</button><button class="btn primary" type="submit">Reschedule</button></div>
+  </form>`)}
 function toggleToday(id){const t=S.tasks[id];const td=today();saveTask({...t,todayOn:t.todayOn===td?null:td,status:t.status==='inbox'?'next':t.status})}
 function pushTomorrow(id){const t=S.tasks[id];const tm=addDays(today(),1);
-  const n={...t,todayOn:tm,mustWinOn:null,carried:(t.carried||0)+1};if(t.due&&t.due<=today())n.due=tm;saveTask(n)}
+  const n={...t,todayOn:tm,mustWinOn:null,carried:(t.carried||0)+1};if(t.due&&t.due<=today())n.due=tm;stampStart(n);saveTask(n)}
 
 /* ---------- render ---------- */
 let raf=0;function render(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;draw()})}
@@ -677,11 +715,14 @@ function tickCombo(){const sess=S.meta.session;
     const m=Math.floor(ms/60000),sc=Math.floor(ms%60000/1000);document.querySelectorAll('[data-sess-clock]').forEach(e=>e.textContent=`${m}:${pad(sc)}`)}
   document.querySelectorAll('[data-until]').forEach(el=>{const ms=+el.dataset.until-Date.now();if(ms<=0){render();return}const m=Math.floor(ms/60000),sc=Math.floor(ms%60000/1000);el.textContent=`${m}:${pad(sc)} left`})}
 setInterval(tickCombo,1000);
+setInterval(()=>{if(!document.querySelector('.sheet'))render()},60000);
 
 function taskRow(t,opts={}){const td=today();const p=projOf(t);const done=t.status==='done';const cat=catOf(t);
   const meta=[];
   if(!opts.hideProject){if(p)meta.push(`<span>${catDot(cat)}${esc(p.name)}</span>`);else if(cat)meta.push(`<span>${catDot(cat)}${cat}</span>`)}
-  if(t.due&&!done){const d=dueLabel(t.due);meta.push(`<span class="${d.c}">${ICON.clock}${d.t}</span>`)}
+  if(t.due&&!done){const d=dueLabel(t.due);const miss=isMissed(t);meta.push(`<span class="${miss?'late':d.c}">${ICON.clock}${miss?'Missed · ':''}${d.t}${t.at?' · '+fmtTime(t.at):''}</span>`)}
+  if(t.kind&&!done)meta.push(`<span>${KINDL[t.kind]||''}${t.at&&t.dur?' · '+fmtDur(t.dur):''}</span>`);
+  if(t.resched&&!done)meta.push(`<span>Rescheduled ${t.resched}×</span>`);
   if(t.status==='waiting')meta.push(`<span>${ICON.wait}Waiting on ${esc(t.waitingOn||'someone')}</span>`);
   if(t.recur)meta.push(`<span>${ICON.repeat}${esc(recurLabel(t))}</span>`);
   if(done&&t.loot)meta.push(`<span class="gain">+${t.loot.tokens} min</span>`);
@@ -690,13 +731,13 @@ function taskRow(t,opts={}){const td=today();const p=projOf(t);const done=t.stat
   return `<div class="row ${done?'done':''}"${opts.bare?' style="padding:0;border:0"':''}>
     <button class="check p${t.priority||3}" data-act="done" data-id="${t.id}" aria-label="${done?'Mark not done':'Complete'}: ${esc(t.title)}">${ICON.check}</button>
     <div class="body"><button class="title" data-act="edit" data-id="${t.id}">${esc(t.title)}</button>${meta.length?`<div class="meta">${meta.join('')}</div>`:''}</div>
-    ${done?'':`<div class="acts">${opts.today===false?'':`<button class="ib today ${t.todayOn===td?'on':''}" data-act="today" data-id="${t.id}" aria-label="Plan for today" title="Plan for today">${ICON.sun}</button>`}
+    ${done?'':`<div class="acts">${isMissed(t)?`<button class="ib resched" data-act="resched" data-id="${t.id}" aria-label="Reschedule" title="Reschedule">${ICON.repeat}</button>`:''}${opts.today===false?'':`<button class="ib today ${t.todayOn===td?'on':''}" data-act="today" data-id="${t.id}" aria-label="Plan for today" title="Plan for today">${ICON.sun}</button>`}
       <button class="ib ${t.mustWinOn===td?'on':''}" data-act="win" data-id="${t.id}" aria-label="Make a must-win" title="Must-win (max 3 a day, better odds of a bonus)">${ICON.star}</button></div>`}
   </div>`}
 const sortTasks=a=>a.sort((x,y)=>(x.priority||3)-(y.priority||3)||((x.due||'9999')<(y.due||'9999')?-1:(x.due||'9999')>(y.due||'9999')?1:0));
 const listOf=(ts,o)=>`<div class="list">${ts.map(t=>taskRow(t,o)).join('')}</div>`;
 
-function alertRow(a){const btn=a.task?(a.act==='today'?`<button class="btn sm" data-act="today" data-id="${a.task}">Start today</button>`:`<button class="btn sm" data-act="edit" data-id="${a.task}">Open</button>`)
+function alertRow(a){const btn=a.task?(a.act==='resched'?`<button class="btn sm primary" data-act="resched" data-id="${a.task}">Reschedule</button>`:a.act==='today'?`<button class="btn sm" data-act="today" data-id="${a.task}">Start today</button>`:`<button class="btn sm" data-act="edit" data-id="${a.task}">Open</button>`)
    :a.project?`<button class="btn sm" data-act="open-project" data-id="${a.project}">Open</button>`:a.view?`<button class="btn sm" data-view="${a.view}">Go</button>`:'';
   return `<div class="alert ${a.sev}"><span class="tag">${esc(a.tag)}</span><div class="msg">${esc(a.msg)}<small>${esc(a.sub)}</small></div>${btn}</div>`}
 
@@ -741,7 +782,7 @@ function viewToday(){const td=today();
   if(!tasks().length&&!projects().length)return `<div class="empty-note"><b>Your deck is empty.</b> Type everything on your mind into the box above, one item at a time. Add <code>+work</code>, <code>+personal</code> or <code>+ministry</code> to file it, and a date like <code>fri</code> to schedule it. Unsorted items land in the Inbox.</div>`;
   const rd=radar();const wins=tasks().filter(t=>t.mustWinOn===td&&inArea(t));
   const winSlots=wins.slice(0,3).map((t,i)=>`<div class="win ${t.status==='done'?'won':''}"><span class="slot">MUST-WIN ${i+1}</span>${taskRow(t,{today:false,bare:true})}</div>`).join('');
-  const todayList=sortTasks(openTasks().filter(inArea).filter(t=>t.mustWinOn!==td&&(t.todayOn===td||(t.due&&t.due<=td&&t.status!=='inbox'))));
+  const todayList=sortTasks(openTasks().filter(inArea).filter(t=>t.mustWinOn!==td&&(t.todayOn===td||(t.due&&t.due<=td&&t.status!=='inbox')))).sort((a,b)=>(a.due===td&&a.at?a.at:'99:99')<(b.due===td&&b.at?b.at:'99:99')?-1:(a.due===td&&a.at?a.at:'99:99')>(b.due===td&&b.at?b.at:'99:99')?1:0);
   const suggest=sortTasks(openTasks().filter(inArea).filter(t=>t.status==='next'&&t.todayOn!==td&&t.mustWinOn!==td&&!(t.due&&t.due<=td))).slice(0,3);
   const doneToday=tasks().filter(inArea).filter(t=>t.status==='done'&&isoDay(t.doneAt)===td);
   const evening=new Date().getHours()>=18;const closed=S.meta.reports?.[td]?.closed;
@@ -882,6 +923,9 @@ function openTaskSheet(id,preset){const isNew=!id;const t=isNew?{title:'',status
     <div class="grid2"><div class="field"><label for="e-recur">Repeats</label><select id="e-recur">${RECURS.map(([v,l])=>`<option value="${v}" ${(t.recur||'')===v?'selected':''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label for="e-due">${t.recur?'Next date':'Due date'}</label><input type="date" id="e-due" value="${t.due||''}"></div></div>
     <div class="field" id="e-days-wrap" ${t.recur==='custom'?'':'hidden'}><span class="lbl">On these days</span><div class="dows" id="e-days">${DOWL.map((d,i)=>`<button type="button" data-act="dow" data-id="${i}" aria-pressed="${days.includes(i)}">${d}</button>`).join('')}</div></div>
+    <div class="field"><span class="lbl">Type of task</span>${segHtml('e-kind',t.kind||'',KINDS.map(([v,l])=>[v,l]))}</div>
+    <div class="grid2"><div class="field"><label for="e-time">Book a time slot</label><input type="time" id="e-time" value="${t.at||''}"></div>
+      <div class="field"><label for="e-dur">Length</label><select id="e-dur">${DURS.map(m=>`<option value="${m}" ${(t.dur||30)===m?'selected':''}>${fmtDur(m)}</option>`).join('')}</select></div></div>
     <div class="grid2"><div class="field"><label for="e-pri">Priority</label><select id="e-pri">${[[1,'1 · Critical'],[2,'2 · Important'],[3,'3 · Normal']].map(([v,l])=>`<option value="${v}" ${(t.priority||3)==v?'selected':''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label for="e-warn">Warn me (days before)</label><input type="number" min="0" max="60" id="e-warn" value="${t.warn??''}" placeholder="${warnOf(t)} (auto)"></div></div>
     <div class="grid2"><div class="field"><label for="e-size">Size</label><select id="e-size">${Object.entries(SIZE).map(([v,l])=>`<option value="${v}" ${(t.size||'M')===v?'selected':''}>${l}</option>`).join('')}</select></div>
@@ -967,13 +1011,15 @@ document.addEventListener('click',e=>{
   if(a==='area'){S.area=id;S.openProject=null;try{localStorage.setItem('qd-area',id)}catch{}render();return}
   if(a==='sound'){soundOn=!soundOn;try{localStorage.setItem('qd-sound',soundOn?'on':'off')}catch{}if(soundOn)tone([660,880]);render();if(document.querySelector('[data-form="reward"]'))openRewardsSheet();return}
   if(a==='rewards'){openRewardsSheet();return}
+  if(a==='resched'){openRescheduleSheet(id);return}
+  if(a==='rs-quick'){reschedule(id,el.dataset.d,el.dataset.h);return}
   if(a==='open-project'){S.view='projects';S.openProject=id;try{history.replaceState(null,'','#projects')}catch{}render();window.scrollTo({top:0});return}
   if(a==='close-project'){S.openProject=null;render();return}
   if(a==='new-project'){openProjectSheet(null);return}
   if(a==='new-recurring'){openTaskSheet(null,{recur:'weekly'});return}
   if(a==='edit-project'){openProjectSheet(id);return}
   if(a==='swatch'){const w=document.getElementById('p-color');w.dataset.v=id;w.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===id));return}
-  if(a==='seg'){const w=el.closest('.seg');w.dataset.v=id;w.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===id));return}
+  if(a==='seg'){const w=el.closest('.seg');if(w.id==='e-kind'&&w.dataset.v===id){w.dataset.v='';w.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed','false'));return}w.dataset.v=id;w.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===id));return}
   if(a==='dow'){el.setAttribute('aria-pressed',el.getAttribute('aria-pressed')!=='true');return}
   if(a==='lucky'){const pool=openTasks().filter(inArea).filter(t=>t.status==='next'&&t.mustWinOn!==today());if(!pool.length)return;
     const t=pool[Math.random()*pool.length|0];toggleToday(t.id);tone([440,554,659]);toast(`Your next quest: <b>${esc(t.title)}</b>. Just do the first 2 minutes.`);return}
@@ -1003,24 +1049,28 @@ document.addEventListener('change',e=>{if(e.target.id==='e-recur'){const w=docum
 document.addEventListener('submit',e=>{e.preventDefault();const f=e.target;
   if(f.id==='qa'){const inp=document.getElementById('qa-input');const v=inp.value.trim();if(!v)return;
     const extra=S.view==='projects'&&S.openProject?{projectId:S.openProject}:{};const t=addFromText(v,extra);inp.value='';updatePreview();
-    if(t)toast(t.status==='inbox'?`Captured to Inbox: ${esc(t.title)}`:`Added: ${esc(t.title)}${t.recur?' · '+esc(recurLabel(t)):t.due?' · '+fmtDate(t.due):''}`);return}
+    if(t){toast(t.status==='inbox'?`Captured to Inbox: ${esc(t.title)}`:`Added: ${esc(t.title)}${t.recur?' · '+esc(recurLabel(t)):t.due?' · '+fmtDate(t.due):''}${t.at?' · '+fmtTime(t.at):''}`);warnOverlap(t)}return}
   if(f.dataset.form==='proj-add'){const inp=f.querySelector('input');const v=inp.value.trim();if(!v)return;addFromText(v,{projectId:f.dataset.id});inp.value='';return}
   if(f.dataset.form==='task'){const id=f.dataset.id;const t=id?S.tasks[id]:{id:'t_'+uid(),createdAt:new Date().toISOString()};const g=k=>document.getElementById(k).value;
     const status=g('e-status');const recur=g('e-recur')||null;
     const recurDays=[...document.querySelectorAll('#e-days button')].filter(b=>b.getAttribute('aria-pressed')==='true').map(b=>+b.dataset.id);
     if(recur==='custom'&&!recurDays.length){toast('Pick at least one day for this recurring task.');return}
     const n={...t,title:g('e-title').trim()||t.title||'Untitled',projectId:g('e-project')||null,cat:document.getElementById('e-cat').dataset.v||null,status,due:g('e-due')||null,warn:g('e-warn')===''?null:+g('e-warn'),
-      priority:+g('e-pri'),size:g('e-size'),waitingOn:g('e-wait').trim(),recur,recurDays:recur==='custom'?recurDays:null,notes:g('e-notes')};
+      priority:+g('e-pri'),size:g('e-size'),waitingOn:g('e-wait').trim(),recur,recurDays:recur==='custom'?recurDays:null,notes:g('e-notes'),
+      kind:document.getElementById('e-kind').dataset.v||null,at:g('e-time')||null,dur:+g('e-dur')||30};
+    if(n.at&&!n.due)n.due=today();
+    stampStart(n);
     if(n.recur&&!n.due)n.due=firstDue(n);
     if(status==='waiting'&&t.status!=='waiting')n.waitingSince=new Date().toISOString();
     if(id&&status==='done'&&t.status!=='done'){closeSheet();saveTask({...n,status:t.status});completeTask(t.id);return}
     if(status!=='done'&&t.status==='done'){n.doneAt=null;n.loot=null}
     if(status==='inbox'&&(n.projectId||n.due||n.cat))n.status='next';
-    saveTask(n);closeSheet();if(!id)toast(`Added: ${esc(n.title)}${n.recur?' · '+esc(recurLabel(n)):''}`);return}
+    saveTask(n);closeSheet();warnOverlap(n);if(!id)toast(`Added: ${esc(n.title)}${n.recur?' · '+esc(recurLabel(n)):''}${n.at?' · '+fmtTime(n.at):''}`);return}
   if(f.dataset.form==='project'){const id=f.dataset.id;const g=k=>document.getElementById(k).value;
     const base=id?S.projects[id]:{id:'p_'+uid(),createdAt:new Date().toISOString()};
     const p={...base,name:g('p-name').trim()||'Untitled',area:document.getElementById('p-area').dataset.v||'Work',deadline:g('p-deadline')||null,goal:g('p-goal').trim(),color:document.getElementById('p-color').dataset.v};
     saveProject(p);closeSheet();if(!id){S.openProject=p.id;S.view='projects';render()}return}
+  if(f.dataset.form==='resched'){const d=document.getElementById('rs-date').value;const h=document.getElementById('rs-time').value;if(!d)return;reschedule(f.dataset.id,d,h||null);return}
   if(f.dataset.form==='reward'){const name=document.getElementById('r-name').value.trim();const cost=Math.max(1,+document.getElementById('r-cost').value||1);if(!name)return;
     saveMeta({rewards:[...rewardsList(),{id:'r_'+uid(),name,cost}]});openRewardsSheet();return}
 });
@@ -1034,7 +1084,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();
 function updatePreview(){const v=document.getElementById('qa-input').value.trim();const el=document.getElementById('qa-preview');if(!v){el.textContent='';return}
   const o=parseQuick(v);const p=o.projectId?S.projects[o.projectId].name:o.newProject?`new project "${o.newProject}"`:null;
   const cat=o.projectId?catOfProject(S.projects[o.projectId]):o.cat||(S.area!=='All'?S.area:null);
-  const bits=[o.status==='inbox'?'→ Inbox':o.status==='waiting'?'→ Waiting for':'→ Next action',cat,p&&'in '+p,o.recur?recurLabel(o)+' from '+fmtDate(o.due):o.due&&'due '+fmtDate(o.due),o.priority<3&&'priority '+o.priority,o.size!=='M'&&SIZE[o.size].toLowerCase()].filter(Boolean);
+  const bits=[o.status==='inbox'?'→ Inbox':o.status==='waiting'?'→ Waiting for':'→ Next action',cat,p&&'in '+p,o.recur?recurLabel(o)+' from '+fmtDate(o.due):o.due&&'due '+fmtDate(o.due),o.priority<3&&'priority '+o.priority,o.size!=='M'&&SIZE[o.size].toLowerCase(),o.kind&&KINDL[o.kind],o.at&&(fmtTime(o.at)+(o.dur?' for '+fmtDur(o.dur):''))].filter(Boolean);
   el.textContent=`"${o.title}" ${bits.join(' · ')}`}
 
 /* ---------- toast + confetti ---------- */

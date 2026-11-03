@@ -29,6 +29,9 @@ function fold(line: string) {
 // all-day events start at local midnight, so +PT9H = 9am that day, -PT4H = 8pm the day before
 const alarm = (trigger: string, text: string) => ["BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${esc(text)}`, `TRIGGER:${trigger}`, "END:VALARM"];
 
+const utc = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+const KIND: Record<string, string> = { meeting: "Meeting", call: "Call", online: "Online", outside: "Out & about", focus: "Deep work", home: "At home" };
+
 Deno.serve(async (req) => {
   const token = new URL(req.url).searchParams.get("token") ?? "";
   if (!/^[0-9a-f-]{36}$/i.test(token)) return new Response("Not found", { status: 404 });
@@ -56,12 +59,25 @@ Deno.serve(async (req) => {
       `SUMMARY:${esc(summary)}`, `DESCRIPTION:${esc(desc)}`, "TRANSP:TRANSPARENT", ...alarms.flat(), "END:VEVENT");
   };
 
+  // a task with a booked time slot becomes a real timed event that blocks that slot in the calendar
+  const timed = (uid: string, startIso: string, mins: number, summary: string, desc: string, alarms: string[][]) => {
+    const end = new Date(new Date(startIso).getTime() + mins * 60000).toISOString();
+    L.push("BEGIN:VEVENT", `UID:${uid}@quest-deck`, `DTSTAMP:${stamp}`, `DTSTART:${utc(startIso)}`, `DTEND:${utc(end)}`,
+      `SUMMARY:${esc(summary)}`, `DESCRIPTION:${esc(desc)}`, "TRANSP:OPAQUE", ...alarms.flat(), "END:VEVENT");
+  };
+
   for (const t of tasks) {
     if (!t.title || t.status === "done" || t.status === "someday") continue;
     const p = t.projectId ? projects[t.projectId] : null;
     const cat = p?.area || t.cat || "";
     const tag = (cat ? `[${cat}] ` : "") + (t.priority === 1 ? "‼ " : "");
-    const desc = [p ? `Project: ${p.name}` : "", t.status === "waiting" && t.waitingOn ? `Waiting on: ${t.waitingOn}` : "", t.recur ? `Repeats: ${t.recur}` : "", t.notes || ""].filter(Boolean).join("\n");
+    const desc = [p ? `Project: ${p.name}` : "", t.status === "waiting" && t.waitingOn ? `Waiting on: ${t.waitingOn}` : "", t.recur ? `Repeats: ${t.recur}` : "", KIND[t.kind] ? `Type: ${KIND[t.kind]}` : "", t.notes || ""].filter(Boolean).join("\n");
+    const startMs = t.startAt ? Date.parse(t.startAt) : NaN;
+    if (!Number.isNaN(startMs) && startMs >= Date.now() - 2 * 864e5) {
+      const mins = Math.max(5, Number(t.dur) || 30);
+      timed(`task-${t.id}`, t.startAt, mins, tag + t.title, desc, [alarm("-PT10M", `In 10 minutes: ${t.title}`), alarm("PT0S", `Now: ${t.title}`)]);
+      continue;
+    }
     if (t.due && t.due >= cutoff) {
       const al = [alarm("PT9H", `Due today: ${t.title}`)];
       if (t.priority === 1) al.push(alarm("-PT4H", `Due tomorrow: ${t.title}`));
