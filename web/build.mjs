@@ -30,8 +30,8 @@ const head = `<!doctype html>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Quest Deck">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#edf0f6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0e1322" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -46,13 +46,13 @@ fs.copyFileSync(path.join(root, 'web', 'cloud.js'), path.join(out, 'cloud.js'));
 fs.writeFileSync(path.join(out, '.nojekyll'), '');
 fs.writeFileSync(path.join(out, 'manifest.webmanifest'), JSON.stringify({
   name: 'Quest Deck', short_name: 'Quest Deck', start_url: './', scope: './', display: 'standalone',
-  background_color: '#edf0f6', theme_color: '#3445c4',
+  background_color: '#f2f2f7', theme_color: "#007aff",
   icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }, { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }],
 }, null, 2));
 
 // app icon: white check on the accent blue, 4x supersampled
 function icon(size) {
-  const bg = [0x34, 0x45, 0xc4], fg = [255, 255, 255], ss = 4;
+  const bg = [0x00, 0x7a, 0xff], fg = [255, 255, 255], ss = 4;
   const pts = [[0.27, 0.53], [0.43, 0.68], [0.74, 0.35]], w = 0.085;
   const seg = (px, py, [ax, ay], [bx, by]) => {
     const dx = bx - ax, dy = by - ay, t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
