@@ -1,4 +1,4 @@
-// Builds the standalone Quest Deck (GitHub Pages) in docs/ from the claude.ai artifact source index.html.
+// Builds the standalone Quest Deck (GitHub Pages) at the repo root from the claude.ai artifact source app.html.
 // Run: node web/build.mjs
 import fs from 'node:fs';
 import zlib from 'node:zlib';
@@ -6,10 +6,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const out = path.join(root, 'docs');
+const out = root;
 fs.mkdirSync(out, { recursive: true });
 
-let app = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+let app = fs.readFileSync(path.join(root, 'app.html'), 'utf8');
 const swap = (from, to) => { if (!app.includes(from)) throw new Error('build: marker not found: ' + from.slice(0, 60)); app = app.replace(from, to); };
 swap('<title>Quest Deck</title>\n', '');
 swap('<meta name="claude:viewport-fit-sides" content="cover">\n', '');
@@ -78,4 +78,4 @@ function icon(size) {
   return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 }
 for (const s of [180, 192, 512]) fs.writeFileSync(path.join(out, `icon-${s}.png`), icon(s));
-console.log('built docs/');
+console.log('built site at repo root');
