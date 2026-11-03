@@ -4,7 +4,8 @@
   const SB_URL = 'https://ginxeipmisoqlcpjdqer.supabase.co';
   const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpbnhlaXBtaXNvcWxjcGpkcWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2NzYxMDMsImV4cCI6MjEwOTI1MjEwM30.qEhW3vEyLHxLYwpK2neJf1aZbOCdTF9jQ6HSHNpPgrM';
   const FEED = SB_URL + '/functions/v1/calendar?token=';
-  const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'qd-auth' } });
+  try { localStorage.removeItem('qd-auth'); } catch {}   // a login saved by the previous database can never work here
+  const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'qd-auth-ginx' } });
 
   let resolveDb; const dbReady = new Promise(r => (resolveDb = r));
   window.claude = { use: async name => (name === 'db' ? dbReady : null) };
@@ -233,5 +234,15 @@
     $('cloud-btn')?.addEventListener('click', showAccount);
   }
   sb.auth.onAuthStateChange((evt, session) => { if (evt === 'SIGNED_OUT' && started) location.reload(); else onSession(session); });
-  sb.auth.getSession().then(async ({ data }) => { if (data.session) onSession(data.session); else { await domReady; if (!started) showLogin(); } });
+  sb.auth.getSession().then(async ({ data }) => {
+    if (data.session) {
+      // a saved login can be stale (for example after the database moved): ask the server before trusting it
+      const { error } = await sb.auth.getUser();
+      if (error && (error.status === 401 || error.status === 403 || /jwt|token|session|not exist/i.test(error.message || ''))) {
+        try { await sb.auth.signOut({ scope: 'local' }); } catch {}
+        await domReady; if (!started) showLogin('Please sign in again.'); return;
+      }
+      onSession(data.session);
+    } else { await domReady; if (!started) showLogin(); }
+  });
 })();
