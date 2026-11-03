@@ -393,6 +393,35 @@ canvas.fx{position:fixed;inset:0;pointer-events:none;z-index:70;width:100%;heigh
 .hud.live .cal-refresh{background:rgba(255,255,255,.2);color:#fff}
 .hud.live .cal-refresh small{color:rgba(255,255,255,.8)}
 .hud .cal-refresh+.hud-foot{margin-top:12px}
+
+/* ---------- matrix ---------- */
+.axis-note{font-size:14px;color:var(--muted);padding:0 4px}
+.axis-note b{color:var(--ink);font-weight:600}
+.quad-grid{display:grid;gap:12px;grid-template-columns:1fr}
+@media (min-width:760px){.quad-grid{grid-template-columns:1fr 1fr}}
+.quad{--qc:var(--accent);background:var(--surface);border-radius:20px;padding:14px 4px 6px;gap:6px;align-content:start;position:relative;overflow:hidden}
+.quad::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--qc)}
+.q1{background:color-mix(in srgb,var(--pink) 5%,var(--surface))}
+.q-head{display:flex;align-items:center;gap:10px;padding:2px 12px 0}
+.q-head>div{flex:1;min-width:0;display:grid}
+.q-head b{font:700 19px var(--f-display);letter-spacing:-.02em}
+.q-head small{font-size:13px;color:var(--muted)}
+.qdot{width:12px;height:12px;border-radius:50%;background:var(--qc);flex:none;box-shadow:0 0 0 4px color-mix(in srgb,var(--qc) 18%,transparent)}
+.q-n{font:700 15px var(--f-round);min-width:28px;text-align:center;padding:3px 9px;border-radius:99px;background:color-mix(in srgb,var(--qc) 16%,transparent);color:color-mix(in srgb,var(--qc) 65%,var(--ink))}
+.q-sub{font-size:14px;color:var(--muted);padding:0 12px 4px}
+.q-list{display:grid}
+.q-list .row{padding-left:12px}
+.q-list .row+.row::before{left:50px}
+.q-empty{font-size:14px;color:var(--faint);padding:6px 12px 14px}
+.sortlist .sortrow{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 14px;position:relative}
+.sortlist .sortrow+.sortrow::before{content:"";position:absolute;top:0;left:14px;right:0;height:.5px;background:var(--line)}
+.sortrow .title{flex:1;min-width:0;display:grid;gap:1px;font-size:16px}
+.sortrow .title small{color:var(--muted);font-size:12.5px}
+.qpick{display:flex;gap:6px;flex:none}
+.qpick button{--qc:var(--accent);width:34px;height:34px;border-radius:50%;border:0;font:700 14px var(--f-round);background:color-mix(in srgb,var(--qc) 18%,transparent);color:color-mix(in srgb,var(--qc) 62%,var(--ink));transition:transform .2s var(--spring)}
+.qpick button:active{transform:scale(.88);background:var(--qc);color:#fff}
+.qkey{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted);padding:0 4px}
+.qkey i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -414,7 +443,7 @@ canvas.fx{position:fixed;inset:0;pointer-events:none;z-index:70;width:100%;heigh
         <button class="btn primary" type="submit" aria-label="Add task"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
       </form>
       <div class="preview" id="qa-preview"></div>
-      <div class="hint"><code>+work</code><code>#project</code><code>!1</code><code>fri</code><code>3pm</code><code>30m</code><code>@call</code><code>@meeting</code><code>@online</code><code>@outside</code></div>
+      <div class="hint"><code>+work</code><code>#project</code><code>!1</code><code>fri</code><code>3pm</code><code>30m</code><code>@call</code><code>@meeting</code><code>@online</code><code>@urgent</code><code>@important</code></div>
     </div>
     <div id="view" style="display:grid;gap:20px;min-width:0"></div>
   </main>
@@ -444,10 +473,11 @@ const ICON={
   sound:'<svg class="ico" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9a4 4 0 0 1 0 6"/></svg>',
   mute:'<svg class="ico" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l4 6M21 9l-4 6"/></svg>',
   right:'<svg class="ico" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
+  grid:'<svg class="ico" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2"/></svg>',
   trash:'<svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
   left:'<svg class="ico" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>'
 };
-const VIEWS=[['today','Today',ICON.today],['inbox','Inbox',ICON.inbox],['projects','Projects',ICON.boss],['upcoming','Upcoming',ICON.cal],['review','Review',ICON.review]];
+const VIEWS=[['today','Today',ICON.today],['inbox','Inbox',ICON.inbox],['projects','Projects',ICON.boss],['upcoming','Upcoming',ICON.cal],['matrix','Matrix',ICON.grid],['review','Review',ICON.review]];
 const CATS=['Work','Personal','Ministry'];
 const CATVAR={Work:'--work',Personal:'--personal',Ministry:'--ministry'};
 const COLORS=['c1','c2','c3','c4','c5','c6'];
@@ -468,6 +498,13 @@ const WORK_START=9*60,WORK_END=18*60,WORK_OVER=22*60,AUTO_DUR={S:15,M:30,L:60};
 const mins=d=>d.getHours()*60+d.getMinutes();
 const slotHm=t=>{if(t.at)return t.at;if(t.auto&&t.startAt){const d=new Date(t.startAt);return pad(d.getHours())+':'+pad(d.getMinutes())}return null};
 const slotKey=t=>{const h=slotHm(t);return h&&(t.auto||t.due===today())?h:'99:99'};
+// Eisenhower matrix: each task is marked urgent yes/no and important yes/no, and lands in the matching quadrant. Unmarked tasks wait in "To sort".
+const QUADS={1:{name:'Do first',short:'Urgent · Important',sub:'Do these today.',empty:'Nothing is on fire.',v:'--pink'},
+  2:{name:'Schedule',short:'Important · Not urgent',sub:'Book time before they turn urgent.',empty:'Plan something here. This is where growth happens.',v:'--accent'},
+  3:{name:'Delegate or batch',short:'Urgent · Not important',sub:'Hand off, batch, or keep it short.',empty:'Nothing here. Good.',v:'--orange'},
+  4:{name:'Let go',short:'Not urgent · Not important',sub:'Drop it, or do it only for fun.',empty:'Nothing here. Good.',v:'--faint'}};
+const quadSet=t=>t.urgent!=null&&t.important!=null;
+const quadOf=t=>t.important?(t.urgent?1:2):(t.urgent?3:4);
 const COMBO_MIN=30;
 const BASE_MIN={S:5,M:10,L:20};
 const fmtMin=n=>n>=60?`${Math.floor(n/60)}h ${n%60}m`:`${n} min`;
@@ -534,6 +571,7 @@ function parseQuick(text){
   t=t.replace(/\s!([123])(?=\s)/g,(m,n)=>{o.priority=+n;return ' '});
   t=t.replace(/\s\*([sml])(?=\s)/gi,(m,z)=>{o.size=z.toUpperCase();return ' '});
   t=t.replace(/\s@wait(ing)?(?=\s)/gi,()=>{o.status='waiting';return ' '});
+  t=t.replace(/\s@(urgent|important)(?=\s)/gi,(m,k)=>{o[k.toLowerCase()]=true;return ' '});
   t=t.replace(/\s@(event|meeting|meet|call|online|zoom|outside|out|errand|focus|deep|home)(?=\s)/gi,(m,k)=>{k=k.toLowerCase();o.kind={meet:'meeting',zoom:'online',out:'outside',errand:'outside',deep:'focus'}[k]||k;return ' '});
   t=t.replace(/\s(?:for\s)?(\d{1,3})\s?(min|mins|m|h|hr|hrs|hour|hours)(?=\s)(?!\s*(?:left|late))/gi,(m,n,u)=>{const v=u[0].toLowerCase()==='h'?+n*60:+n;if(v>=5&&v<=480){o.dur=v;return ' '}return m});
   t=t.replace(/\s(?:at\s)?(\d{1,2})(?::(\d{2}))?\s?(am|pm)(?=\s)/i,(m,h,mi,ap)=>{h=+h%12+(ap.toLowerCase()==='pm'?12:0);o.at=pad(h)+':'+(mi||'00');return ' '});
@@ -550,6 +588,7 @@ function parseQuick(text){
   t=t.replace(/\sin (\d+) ?(d|days?|w|wks?|weeks?)(?=\s)/i,(m,n,u)=>setDue(addDays(td,+n*(u[0].toLowerCase()==='w'?7:1))));
   t=t.replace(/\s(?:on |by )?(sun|mon|tue|wed|thu|fri|sat)[a-z]*(?=\s)/i,(m,d)=>{const target=DOWS.indexOf(d.toLowerCase());let n=(target-parseYmd(td).getDay()+7)%7;if(n===0)n=7;return setDue(addDays(td,n))});
   t=t.replace(/\s(?:on |by )?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]* (\d{1,2})(?=\s)/i,(m,mo,d)=>{const now=new Date();let dt=new Date(now.getFullYear(),MONTHS.indexOf(mo.toLowerCase()),+d);if(ymd(dt)<td)dt.setFullYear(dt.getFullYear()+1);return setDue(ymd(dt))});
+  if(o.urgent||o.important){o.urgent=!!o.urgent;o.important=!!o.important}
   o.title=t.trim().replace(/\s+/g,' ');
   if(o.at&&!o.due){const nowHm=pad(new Date().getHours())+':'+pad(new Date().getMinutes());o.due=o.at>nowHm?td:addDays(td,1)}
   if(o.recur&&!o.due)o.due=firstDue(o);
@@ -749,7 +788,7 @@ function draw(){
   document.getElementById('sync').innerHTML=`<span class="dot ${sync[0]}"></span>${sync[1]}`;
   const counts={};CATS.forEach(c=>counts[c]=openTasks().filter(t=>catOf(t)===c&&t.status!=='someday').length);
   document.getElementById('cats').innerHTML=['All',...CATS].map(c=>`<button class="cat" data-act="area" data-id="${c}" aria-pressed="${S.area===c}">${c!=='All'?`<i style="background:var(${CATVAR[c]})"></i>`:''}${c}${c!=='All'?`<span class="n">${counts[c]}</span>`:''}</button>`).join('');
-  const titles={today:'Today',inbox:'Inbox',projects:'Projects',upcoming:'Upcoming',review:'Review'};
+  const titles={today:'Today',inbox:'Inbox',projects:'Projects',upcoming:'Upcoming',matrix:'Matrix',review:'Review'};
   setTimeout(autoLayout,0);
   document.getElementById('lt-title').textContent=titles[S.view]||'Today';
   document.getElementById('lt-eyebrow').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
@@ -758,7 +797,7 @@ function draw(){
   document.getElementById('capture').hidden=S.view==='review';
   if(S.view==='today')drawHud();
   const v=document.getElementById('view');
-  const html={today:viewToday,inbox:viewInbox,projects:viewProjects,upcoming:viewUpcoming,review:viewReview}[S.view]();
+  const html={today:viewToday,inbox:viewInbox,projects:viewProjects,upcoming:viewUpcoming,matrix:viewMatrix,review:viewReview}[S.view]();
   const banner='';
   v.innerHTML=banner+html;
   const tl=document.getElementById('tl');
@@ -808,7 +847,7 @@ function taskRow(t,opts={}){const td=today();const p=projOf(t);const done=t.stat
   return `<div class="row ${done?'done':''}"${opts.bare?' style="padding:0;border:0"':''}>
     <button class="check p${t.priority||3}" data-act="done" data-id="${t.id}" aria-label="${done?'Mark not done':'Complete'}: ${esc(t.title)}">${ICON.check}</button>
     <div class="body"><button class="title" data-act="edit" data-id="${t.id}">${esc(t.title)}</button>${meta.length?`<div class="meta">${meta.join('')}</div>`:''}</div>
-    ${done?'':opts.del?`<div class="acts">${isMissed(t)?`<button class="ib resched" data-act="resched" data-id="${t.id}" aria-label="Reschedule" title="Reschedule">${ICON.repeat}</button>`:''}<button class="ib" data-act="del" data-id="${t.id}" aria-label="Delete ${esc(t.title)}" title="Delete">${ICON.trash}</button></div>`:`<div class="acts">${isMissed(t)?`<button class="ib resched" data-act="resched" data-id="${t.id}" aria-label="Reschedule" title="Reschedule">${ICON.repeat}</button>`:''}${opts.today===false?'':`<button class="ib today ${t.todayOn===td?'on':''}" data-act="today" data-id="${t.id}" aria-label="Plan for today" title="Plan for today">${ICON.sun}</button>`}
+    ${done?'':opts.quad?`<div class="acts"><button class="ib" data-act="quad-move" data-id="${t.id}" aria-label="Move to another quadrant" title="Move">${ICON.grid}</button></div>`:opts.del?`<div class="acts">${isMissed(t)?`<button class="ib resched" data-act="resched" data-id="${t.id}" aria-label="Reschedule" title="Reschedule">${ICON.repeat}</button>`:''}<button class="ib" data-act="del" data-id="${t.id}" aria-label="Delete ${esc(t.title)}" title="Delete">${ICON.trash}</button></div>`:`<div class="acts">${isMissed(t)?`<button class="ib resched" data-act="resched" data-id="${t.id}" aria-label="Reschedule" title="Reschedule">${ICON.repeat}</button>`:''}${opts.today===false?'':`<button class="ib today ${t.todayOn===td?'on':''}" data-act="today" data-id="${t.id}" aria-label="Plan for today" title="Plan for today">${ICON.sun}</button>`}
       <button class="ib ${t.mustWinOn===td?'on':''}" data-act="win" data-id="${t.id}" aria-label="Make a must-win" title="Must-win (max 3 a day, better odds of a bonus)">${ICON.star}</button></div>`}
   </div>`}
 const sortTasks=a=>a.sort((x,y)=>(x.priority||3)-(y.priority||3)||((x.due||'9999')<(y.due||'9999')?-1:(x.due||'9999')>(y.due||'9999')?1:0));
@@ -916,6 +955,29 @@ function viewProject(p){const i=projectInfo(p);const groups=[['next','Next actio
    ${!i.open.length?`<div class="allclear">${i.ts.length?'Boss defeated. Archive it from Edit project, or add the next phase.':'No tasks yet. Add the very next step above.'}</div>`:''}
    ${done.length?`<div class="eyebrow" style="margin-top:6px">Done (${done.length})</div>${listOf(done.slice(0,10),{hideProject:true})}`:''}
   </section>`}
+
+/* ---------- matrix view ---------- */
+function setQuad(id,q){const t=S.tasks[id];if(!t)return;saveTask({...t,urgent:q===1||q===3,important:q===1||q===2})}
+function openQuadSheet(id){const t=S.tasks[id];if(!t)return;const cur=quadSet(t)?quadOf(t):0;
+  sheet(`<div class="sheet" role="dialog" aria-label="Move task"><h2>Where does this belong?</h2><div style="color:var(--muted);font-size:15px;margin-top:-6px">${esc(t.title)}</div>
+    <div class="rewards">${[1,2,3,4].map(q=>`<div class="reward"><span class="qdot" style="background:var(${QUADS[q].v})"></span><span class="name">${QUADS[q].name}<small style="display:block;color:var(--muted);font-weight:400;font-size:13px">${QUADS[q].short}</small></span>
+      <button type="button" class="btn sm ${cur===q?'':'primary'}" data-act="q-set" data-id="${id}" data-q="${q}" ${cur===q?'disabled':''}>${cur===q?'Here':'Move'}</button></div>`).join('')}</div>
+    <div class="foot"><button type="button" class="btn ghost" data-act="close-sheet">Close</button></div></div>`)}
+function viewMatrix(){const open=openTasks().filter(inArea).filter(t=>!['inbox','someday'].includes(t.status));
+  const by={1:[],2:[],3:[],4:[]};const unsorted=[];
+  open.forEach(t=>{if(quadSet(t))by[quadOf(t)].push(t);else unsorted.push(t)});
+  [1,2,3,4].forEach(q=>sortTasks(by[q]));sortTasks(unsorted);
+  const card=q=>`<section class="quad q${q}" style="--qc:var(${QUADS[q].v})"><div class="q-head"><span class="qdot"></span><div><b>${QUADS[q].name}</b><small>${QUADS[q].short}</small></div><span class="q-n">${by[q].length}</span></div>
+    <div class="q-sub">${QUADS[q].sub}</div>
+    ${by[q].length?`<div class="q-list">${by[q].map(t=>taskRow(t,{quad:true,today:false})).join('')}</div>`:`<div class="q-empty">${QUADS[q].empty}</div>`}</section>`;
+  const sortRow=t=>`<div class="sortrow"><button class="title" data-act="edit" data-id="${t.id}">${esc(t.title)}${t.due?`<small>${dueLabel(t.due).t}</small>`:''}</button>
+    <div class="qpick" role="group" aria-label="Choose a quadrant">${[1,2,3,4].map(q=>`<button data-act="q-set" data-id="${t.id}" data-q="${q}" style="--qc:var(${QUADS[q].v})" aria-label="${QUADS[q].name}" title="${QUADS[q].name}: ${QUADS[q].short}">${q}</button>`).join('')}</div></div>`;
+  return `<div class="axis-note">Mark each task <b>Urgent</b> and <b>Important</b> in its details, or tap 1 to 4 below. It lands in the matching box.</div>
+   <div class="quad-grid">${[1,2,3,4].map(card).join('')}</div>
+   ${unsorted.length?`<section><div class="sec-head"><h2>To sort</h2><span class="sub">${unsorted.length} not placed yet</span></div>
+     <div class="list sortlist">${unsorted.slice(0,12).map(sortRow).join('')}</div>
+     <div class="qkey">${[1,2,3,4].map(q=>`<span><i style="background:var(${QUADS[q].v})"></i>${q} ${QUADS[q].name}</span>`).join('')}</div>
+     ${unsorted.length>12?`<div style="color:var(--muted);font-size:13px;padding:0 4px">+${unsorted.length-12} more. Sort these first.</div>`:''}</section>`:''}`}
 
 /* ---------- calendar view ---------- */
 const TL_H=52;
@@ -1042,6 +1104,8 @@ function openTaskSheet(id,preset){const isNew=!id;const t=isNew?{title:'',status
     <div class="grid2"><div class="field"><label for="e-recur">Repeats</label><select id="e-recur">${RECURS.map(([v,l])=>`<option value="${v}" ${(t.recur||'')===v?'selected':''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label for="e-due">${t.recur?'Next date':'Due date'}</label><input type="date" id="e-due" value="${t.due||''}"></div></div>
     <div class="field" id="e-days-wrap" ${t.recur==='custom'?'':'hidden'}><span class="lbl">On these days</span><div class="dows" id="e-days">${DOWL.map((d,i)=>`<button type="button" data-act="dow" data-id="${i}" aria-pressed="${days.includes(i)}">${d}</button>`).join('')}</div></div>
+    <div class="grid2"><div class="field"><span class="lbl">Urgent?</span>${segHtml('e-urgent',t.urgent==null?'':t.urgent?'y':'n',[['y','Yes'],['n','No']])}</div>
+      <div class="field"><span class="lbl">Important?</span>${segHtml('e-important',t.important==null?'':t.important?'y':'n',[['y','Yes'],['n','No']])}</div></div>
     <div class="field"><span class="lbl">Type of task</span>${segHtml('e-kind',t.kind||'',KINDS.map(([v,l])=>[v,l]))}</div>
     <div class="grid2"><div class="field"><label for="e-time">Choose a time</label><input type="time" id="e-time" value="${t.at||''}"></div>
       <div class="field"><label for="e-dur">Length</label><select id="e-dur"><option value="">Auto</option>${DURS.map(m=>`<option value="${m}" ${(t.dur||0)===m?'selected':''}>${fmtDur(m)}</option>`).join('')}</select></div></div>
@@ -1141,6 +1205,8 @@ document.addEventListener('click',e=>{
   if(a==='set-cat'){const t=S.tasks[id];saveTask({...t,cat:el.dataset.cat,status:'next'});toast(`Filed to ${el.dataset.cat}`);return}
   if(a==='area'){S.area=id;S.openProject=null;try{localStorage.setItem('qd-area',id)}catch{}render();return}
   if(a==='sound'){soundOn=!soundOn;try{localStorage.setItem('qd-sound',soundOn?'on':'off')}catch{}if(soundOn)tone([660,880]);render();if(document.querySelector('[data-form="reward"]'))openRewardsSheet();return}
+  if(a==='quad-move'){openQuadSheet(id);return}
+  if(a==='q-set'){setQuad(id,+el.dataset.q);closeSheet();return}
   if(a==='cal-day'){S.calDay=id;render();return}
   if(a==='cal-week'){S.calDay=addDays(S.calDay||today(),7*+id);render();return}
   if(a==='cal-today'){S.calDay=today();S.tlDay=null;render();return}
@@ -1154,7 +1220,7 @@ document.addEventListener('click',e=>{
   if(a==='new-recurring'){openTaskSheet(null,{recur:'weekly'});return}
   if(a==='edit-project'){openProjectSheet(id);return}
   if(a==='swatch'){const w=document.getElementById('p-color');w.dataset.v=id;w.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===id));return}
-  if(a==='seg'){const w=el.closest('.seg');if(w.id==='e-kind'&&w.dataset.v===id){w.dataset.v='';w.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed','false'));return}w.dataset.v=id;w.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===id));return}
+  if(a==='seg'){const w=el.closest('.seg');if(['e-kind','e-urgent','e-important'].includes(w.id)&&w.dataset.v===id){w.dataset.v='';w.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed','false'));return}w.dataset.v=id;w.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===id));return}
   if(a==='dow'){el.setAttribute('aria-pressed',el.getAttribute('aria-pressed')!=='true');return}
   if(a==='lucky'){const pool=openTasks().filter(inArea).filter(t=>t.status==='next'&&t.mustWinOn!==today());if(!pool.length)return;
     const t=pool[Math.random()*pool.length|0];toggleToday(t.id);tone([440,554,659]);toast(`Your next quest: <b>${esc(t.title)}</b>. Just do the first 2 minutes.`);return}
@@ -1192,7 +1258,8 @@ document.addEventListener('submit',e=>{e.preventDefault();const f=e.target;
     if(recur==='custom'&&!recurDays.length){toast('Pick at least one day for this recurring task.');return}
     const n={...t,title:g('e-title').trim()||t.title||'Untitled',projectId:g('e-project')||null,cat:document.getElementById('e-cat').dataset.v||null,status,due:g('e-due')||null,warn:g('e-warn')===''?null:+g('e-warn'),
       priority:+g('e-pri'),size:g('e-size'),waitingOn:g('e-wait').trim(),recur,recurDays:recur==='custom'?recurDays:null,notes:g('e-notes'),
-      kind:document.getElementById('e-kind').dataset.v||null,at:g('e-time')||null,dur:+g('e-dur')||null,auto:false};
+      kind:document.getElementById('e-kind').dataset.v||null,
+      urgent:({y:true,n:false})[document.getElementById('e-urgent').dataset.v]??null,important:({y:true,n:false})[document.getElementById('e-important').dataset.v]??null,at:g('e-time')||null,dur:+g('e-dur')||null,auto:false};
     if((n.at||n.kind==='event')&&!n.due)n.due=today();
     stampStart(n);
     if(n.recur&&!n.due)n.due=firstDue(n);
@@ -1219,7 +1286,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();
 function updatePreview(){const v=document.getElementById('qa-input').value.trim();const el=document.getElementById('qa-preview');if(!v){el.textContent='';return}
   const o=parseQuick(v);const p=o.projectId?S.projects[o.projectId].name:o.newProject?`new project "${o.newProject}"`:null;
   const cat=o.projectId?catOfProject(S.projects[o.projectId]):o.cat||(S.area!=='All'?S.area:null);
-  const bits=[o.status==='inbox'?'→ Inbox':o.status==='waiting'?'→ Waiting for':'→ Next action',cat,p&&'in '+p,o.recur?recurLabel(o)+' from '+fmtDate(o.due):o.due&&'due '+fmtDate(o.due),o.priority<3&&'priority '+o.priority,o.size!=='M'&&SIZE[o.size].toLowerCase(),o.kind&&KINDL[o.kind],o.at&&(fmtTime(o.at)+(o.dur?' for '+fmtDur(o.dur):''))].filter(Boolean);
+  const bits=[o.status==='inbox'?'→ Inbox':o.status==='waiting'?'→ Waiting for':'→ Next action',cat,p&&'in '+p,o.recur?recurLabel(o)+' from '+fmtDate(o.due):o.due&&'due '+fmtDate(o.due),o.priority<3&&'priority '+o.priority,o.size!=='M'&&SIZE[o.size].toLowerCase(),o.kind&&KINDL[o.kind],o.urgent!=null&&QUADS[quadOf(o)].short,o.at&&(fmtTime(o.at)+(o.dur?' for '+fmtDur(o.dur):''))].filter(Boolean);
   el.textContent=`"${o.title}" ${bits.join(' · ')}`}
 
 /* ---------- toast + confetti ---------- */
