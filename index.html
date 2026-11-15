@@ -106,7 +106,9 @@ nav.tabs .count.hot{background:var(--pink);color:#fff}
 }
 
 /* ---------- large title ---------- */
-.lt{padding:6px 4px 2px;display:grid;gap:2px}
+.lt{padding:6px 4px 2px;display:grid;gap:2px;position:relative}
+.lt-gear{position:absolute;right:0;bottom:2px;width:40px;height:40px;border:0;border-radius:50%;background:var(--surface);color:var(--accent);display:grid;place-items:center}
+.lt-gear[aria-current="page"]{background:var(--accent);color:#fff}
 .lt-eyebrow{font:600 13px var(--f-body);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .lt h1{font:700 34px/1.1 var(--f-display);letter-spacing:-.022em}
 
@@ -148,7 +150,9 @@ nav.tabs .count.hot{background:var(--pink);color:#fff}
 .hud.live .spend{background:#fff;color:var(--accent)}
 
 /* ---------- category: iOS segmented control ---------- */
-.cats{display:flex;background:var(--sunk);border-radius:9px;padding:2px;gap:0}
+.cats{display:flex;background:var(--sunk);border-radius:9px;padding:2px;gap:0;overflow-x:auto;scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.cats .cat{flex:1 0 auto}
 .cat{flex:1;border:0;background:none;border-radius:7px;padding:6px 8px;font-size:14px;font-weight:500;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0;white-space:nowrap;transition:background .2s,box-shadow .2s}
 .cat i{display:none}
 .cat[aria-pressed="true"]{background:var(--surface);font-weight:600;box-shadow:0 3px 8px rgba(0,0,0,.12),0 .5px 1px rgba(0,0,0,.1)}
@@ -560,6 +564,19 @@ canvas.fx{position:fixed;inset:0;pointer-events:none;z-index:70;width:100%;heigh
 .hday{display:flex;justify-content:space-between;gap:10px;padding:0 6px;font:600 13px var(--f-body);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .hday b{color:var(--ink);font-weight:600;text-transform:none;letter-spacing:0}
 .mtabs{display:flex;background:var(--sunk);border-radius:9px;padding:2px}
+.arow{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 14px;position:relative;min-height:52px}
+.arow+.arow::before{content:"";position:absolute;top:0;left:14px;right:0;height:.5px;background:var(--line)}
+.arow .name{flex:1;min-width:0;font-weight:500;overflow-wrap:anywhere}
+.arow .name small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
+.adot{width:28px;height:28px;border-radius:50%;border:3px solid var(--surface);box-shadow:0 0 0 1.5px var(--line);flex:none;padding:0}
+.aadd{position:relative}
+.aadd input{width:100%;border:0;background:var(--surface);border-radius:12px;padding:13px 76px 13px 16px;font-size:17px;outline:none}
+.aadd input::placeholder{color:var(--faint)}
+.aadd input:focus{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent)}
+.aadd .btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:7px 14px;font-size:15px;border-radius:99px}
+.aadd .btn:active{transform:translateY(-50%) scale(.96)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:0;background:var(--sunk);color:var(--ink);border-radius:99px;padding:7px 13px;font-size:14px;font-weight:500}
 .mhead{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:0 4px}
 .amt{font:600 16px var(--f-round);flex:none;margin-left:auto;white-space:nowrap;align-self:center}
 .pay{display:grid;gap:2px}
@@ -577,7 +594,7 @@ canvas.fx{position:fixed;inset:0;pointer-events:none;z-index:70;width:100%;heigh
     <nav class="tabs" id="tabs" aria-label="Views"></nav>
   </aside>
   <main id="main">
-    <header class="lt"><div class="lt-eyebrow" id="lt-eyebrow"></div><h1 id="lt-title">Today</h1></header>
+    <header class="lt"><div class="lt-eyebrow" id="lt-eyebrow"></div><h1 id="lt-title">Today</h1><button class="lt-gear" id="lt-gear" data-view="admin" aria-label="Admin: categories and options" title="Admin"><svg class="ico" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h3M11 12h9M4 18h9M17 18h3"/><circle cx="16" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="18" r="2"/></svg></button></header>
     <div class="hud" id="hud"></div>
     <div class="cats" id="cats" role="group" aria-label="Category"></div>
     <div class="capture" id="capture">
@@ -626,8 +643,16 @@ const ICON={
   rupee:'<svg class="ico" viewBox="0 0 24 24"><path d="M7 5h10M7 9h10M7 5c6 0 6 8 0 8l7 7"/></svg>'
 };
 const VIEWS=[['focus','Focus',ICON.bolt],['today','Today',ICON.today],['inbox','Inbox',ICON.inbox],['projects','Projects',ICON.boss],['upcoming','Upcoming',ICON.cal],['matrix','Matrix',ICON.grid],['review','Review',ICON.review],['money','Money',ICON.rupee]];
-const CATS=['Work','Personal','Ministry'];
-const CATVAR={Work:'--work',Personal:'--personal',Ministry:'--ministry'};
+const CAT_DEFAULTS=[{n:'Work',c:'--work'},{n:'Personal',c:'--personal'},{n:'Ministry',c:'--ministry'}];
+const CAT_PALETTE=['--blue','--green','--purple','--orange','--pink','--teal'];
+// CATS and CATVAR are filled from S.meta.cats (Admin page) and fall back to the three defaults.
+const CATS=CAT_DEFAULTS.map(x=>x.n);
+const CATVAR={};CAT_DEFAULTS.forEach(x=>CATVAR[x.n]=x.c);
+function syncCats(){const list=Array.isArray(S.meta.cats)&&S.meta.cats.length?S.meta.cats:CAT_DEFAULTS;
+  CATS.length=0;Object.keys(CATVAR).forEach(k=>delete CATVAR[k]);
+  list.forEach(x=>{if(x&&x.n&&!CATS.includes(x.n)){CATS.push(x.n);CATVAR[x.n]=x.c||'--blue'}});
+  if(S.area!=='All'&&!CATS.includes(S.area))S.area='All'}
+const curCats=()=>CATS.map(n=>({n,c:CATVAR[n]}));
 const COLORS=['c1','c2','c3','c4','c5','c6'];
 const SIZE={S:'Small',M:'Medium',L:'Large'};
 const TIERS={common:'Common',rare:'Rare',epic:'Epic',legendary:'Legendary'};
@@ -666,7 +691,7 @@ const MONTHS=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov',
 const DEFAULT_REWARDS=[{id:'r1',name:'Social media',cost:15},{id:'r2',name:'Games',cost:30}];
 
 const S={projects:{},tasks:{},meta:{},mode:'connecting',db:null,view:'focus',area:'All',openProject:null,showReport:false,coach:null};
-try{const a=localStorage.getItem('qd-area');if(a&&(a==='All'||CATS.includes(a)))S.area=a}catch{}
+try{const a=localStorage.getItem('qd-area');if(a)S.area=a}catch{}
 let soundOn=true;try{soundOn=localStorage.getItem('qd-sound')!=='off'}catch{}
 const h=location.hash.slice(1);if(VIEWS.some(v=>v[0]===h))S.view=h;
 
@@ -762,7 +787,7 @@ function saveTask(t){S.tasks[t.id]={...t};persist('tasks',t.id,t);render()}
 function deleteTask(id){delete S.tasks[id];persistDel('tasks',id);render()}
 function saveProject(p){S.projects[p.id]={...p};persist('projects',p.id,p);render()}
 function deleteProject(id){delete S.projects[id];persistDel('projects',id);render()}
-function saveMeta(patch){S.meta={...S.meta,...patch};if(!S.db){local.save()}else{const m={...S.meta};queue('meta/state',()=>S.db.doc('meta/state').set(m))}render()}
+function saveMeta(patch){S.meta={...S.meta,...patch};syncCats();if(!S.db){local.save()}else{const m={...S.meta};queue('meta/state',()=>S.db.doc('meta/state').set(m))}render()}
 
 /* ---------- motivation engine ---------- */
 // Every finished task earns minutes of screen time (5 / 10 / 20 by size). Some also drop a surprise bonus of 5, 10 or 15 minutes.
@@ -934,16 +959,17 @@ function draw(){
   document.getElementById('sync').innerHTML=`<span class="dot ${sync[0]}"></span>${sync[1]}`;
   const counts={};CATS.forEach(c=>counts[c]=openTasks().filter(t=>catOf(t)===c&&t.status!=='someday').length);
   document.getElementById('cats').innerHTML=['All',...CATS].map(c=>`<button class="cat" data-act="area" data-id="${c}" aria-pressed="${S.area===c}">${c!=='All'?`<i style="background:var(${CATVAR[c]})"></i>`:''}${c}${c!=='All'?`<span class="n">${counts[c]}</span>`:''}</button>`).join('');
-  const titles={today:'Today',inbox:'Inbox',projects:'Projects',upcoming:'Upcoming',matrix:'Matrix',review:'Review',focus:'Focus',money:'Money'};
+  const titles={today:'Today',inbox:'Inbox',projects:'Projects',upcoming:'Upcoming',matrix:'Matrix',review:'Review',focus:'Focus',money:'Money',admin:'Admin'};
   setTimeout(autoLayout,0);
   document.getElementById('lt-title').textContent=titles[S.view]||'Today';
   document.getElementById('lt-eyebrow').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('hud').hidden=S.view!=='today';
-  document.getElementById('cats').hidden=['review','focus','money'].includes(S.view);
-  document.getElementById('capture').hidden=['review','focus','money'].includes(S.view);
+  document.getElementById('cats').hidden=['review','focus','money','admin'].includes(S.view);
+  document.getElementById('capture').hidden=['review','focus','money','admin'].includes(S.view);
   if(S.view==='today')drawHud();
   const v=document.getElementById('view');
-  const html={focus:viewFocus,money:viewMoney,today:viewToday,inbox:viewInbox,projects:viewProjects,upcoming:viewUpcoming,matrix:viewMatrix,review:viewReview}[S.view]();
+  const gearEl=document.getElementById('lt-gear');if(gearEl){if(S.view==='admin')gearEl.setAttribute('aria-current','page');else gearEl.removeAttribute('aria-current')}
+  const html={admin:viewAdmin,focus:viewFocus,money:viewMoney,today:viewToday,inbox:viewInbox,projects:viewProjects,upcoming:viewUpcoming,matrix:viewMatrix,review:viewReview}[S.view]();
   const banner='';
   v.innerHTML=banner+html;
   const tl=document.getElementById('tl');
@@ -1323,7 +1349,7 @@ function viewReview(){const ws=weekStart();const checks=S.meta.checks?.week===ws
     ['Give every project a next step',stuck?`${stuck} project${stuck>1?'s have':' has'} no next action.`:'Every project has a next step.'],
     ['Check what you are waiting on',waiting?`${waiting} item${waiting>1?'s':''} waiting on other people. Nudge the slow ones.`:'Nothing waiting on others.'],
     ['Look two weeks ahead','Open Upcoming and your calendar. Start anything big now.'],
-    ['Check the balance','Did Work, Personal and Ministry each get attention? Plan one thing for whichever got none.'],
+    ['Check the balance',`Did ${CATS.join(', ')} each get attention? Plan one thing for whichever got none.`],
     ['Pick next week\'s 3 outcomes','Write them below. They guide your daily must-wins.']];
   // last 7 days, planned vs done
   const st=stats();const td=today();const reps=S.meta.reports||{};
@@ -1506,6 +1532,7 @@ function openPaySheet(row){const r=(M.rows||[]).find(x=>x.row===row);if(!r)retur
     <h2>${inr(r.inr)}</h2>
     <div style="color:var(--muted);font-size:15px;margin-top:-6px">${esc(r.method)}${r.time?' · '+esc(r.time):''} · ${cash?'Cash, so you can correct the amount':'The amount comes from your bank and stays as it is'}</div>
     <div class="field"><label for="p-note">What was it actually for?</label><input id="p-note" value="${esc(note)}" maxlength="80" placeholder="e.g. Auto to church, lunch with Sam"></div>
+    ${(S.meta.money?.quick||[]).length?`<div class="chips">${S.meta.money.quick.map(q=>`<button type="button" class="chip" data-act="note-chip" data-id="${esc(q)}">${esc(q)}</button>`).join('')}</div>`:''}
     <div class="field"><span class="lbl">Category</span>${segHtml('p-cat',r.category,[...payCats().map(c=>[c,esc(c)]),['Ignored','Not a spend']])}</div>
     <div class="grid2"><div class="field"><label for="p-name">Paid to</label><input id="p-name" value="${esc(r.merchant)}" maxlength="60" required></div>
       <div class="field"><label for="p-date">Date</label><input type="date" id="p-date" value="${r.date}" max="${today()}" required></div></div>
@@ -1519,6 +1546,32 @@ function openBudgetSheet(){const mm=S.meta.money||{};
     ${f('b-day','Daily budget',mm.dayLimit,'e.g. 500')}${f('b-week','Weekly budget',mm.weekLimit,'e.g. 3500')}${f('b-month','Monthly budget',mm.monthLimit,'e.g. 15000')}
     <div class="foot"><button type="button" class="btn ghost" data-act="close-sheet">Cancel</button><button class="btn primary" type="submit">Save</button></div></form>`);
   document.getElementById('b-day').focus()}
+
+/* ---------- admin: the lists the rest of the app uses ---------- */
+const MONEY_FIXED=['Uncategorized','Cash Withdrawal','Ignored'];
+function viewAdmin(){const used=n=>openTasks().filter(t=>catOf(t)===n).length;
+  const mcats=(M.cats||[]).filter(c=>!MONEY_FIXED.includes(c));const quick=S.meta.money?.quick||[];
+  const spentIn=c=>(M.rows||[]).filter(r=>r.category===c).length;
+  return `<section><div class="sec-head"><h2>Task categories</h2></div>
+     <div class="list">${CATS.map(n=>`<div class="arow"><button class="adot" style="background:var(${CATVAR[n]})" data-act="cat-color" data-id="${esc(n)}" aria-label="Change colour of ${esc(n)}" title="Change colour"></button>
+       <span class="name">${esc(n)}<small>${used(n)} open task${used(n)===1?'':'s'}</small></span>
+       <button class="btn sm" data-act="cat-rename" data-id="${esc(n)}">Rename</button>${CATS.length>1?`<button class="btn sm" data-act="cat-del" data-id="${esc(n)}">Remove</button>`:''}</div>`).join('')}</div>
+     <form class="aadd" data-form="cat-add" autocomplete="off"><input id="ac-name" maxlength="20" placeholder="New task category, e.g. House" aria-label="New task category"><button class="btn primary" type="submit">Add</button></form>
+     <div class="qnote" style="padding:0 6px">These are the filters at the top of Today and the choices on every task. Type <code style="font:500 12px var(--f-mono);background:var(--sunk);padding:2px 7px;border-radius:6px;color:var(--ink)">+${esc((CATS[CATS.length-1]||'work').toLowerCase().split(' ')[0])}</code> in the add box to file a task straight into one.</div></section>
+   <section><div class="sec-head"><h2>Money categories</h2></div>
+     ${!MC.url?`<div class="empty-note">Connect your expense sheet in the Money tab first. Money categories live in that sheet.</div>`
+       :`${mcats.length?`<div class="list">${mcats.map(c=>`<div class="arow"><span class="name">${esc(c)}<small>${spentIn(c)} payment${spentIn(c)===1?'':'s'}</small></span><button class="btn sm" data-act="mcat-del" data-id="${esc(c)}">Remove</button></div>`).join('')}</div>`:`<div class="empty-note">Open the Money tab once so the list can load.</div>`}
+     <form class="aadd" data-form="mcat-add" autocomplete="off"><input id="am-name" maxlength="30" placeholder="New money category, e.g. House" aria-label="New money category"><button class="btn primary" type="submit">Add</button></form>
+     <div class="qnote" style="padding:0 6px">Saved to the Settings tab of your Google Sheet, so the sheet's own dropdown gets them too. Removing one leaves past payments as they are.</div>`}</section>
+   <section><div class="sec-head"><h2>Quick notes</h2></div>
+     ${quick.length?`<div class="list">${quick.map((q,i)=>`<div class="arow"><span class="name">${esc(q)}</span><button class="btn sm" data-act="quick-del" data-id="${i}">Remove</button></div>`).join('')}</div>`:''}
+     <form class="aadd" data-form="quick-add" autocomplete="off"><input id="aq-name" maxlength="40" placeholder="e.g. Auto, Lunch, Groceries" aria-label="New quick note"><button class="btn primary" type="submit">Add</button></form>
+     <div class="qnote" style="padding:0 6px">One-tap answers to "What was it actually for?" when you open a payment.</div></section>
+   <section><div class="sec-head"><h2>App</h2></div>
+     <div class="list"><div class="arow"><span class="name">Sounds</span><button class="btn sm" data-act="sound">${soundOn?'On':'Off'}</button></div>
+       <div class="arow"><span class="name">Follow-up hints after a task</span><button class="btn sm" data-act="hints-toggle">${S.meta.hintsOff?'Off':'On'}</button></div></div></section>`}
+function moneyCatCall(body,okMsg){moneyCall(body).then(d=>{if(!d||d.ok!==true)throw new Error((d&&d.error)||'');M.cats=d.categories||M.cats;cacheMoney();render();toast(okMsg)})
+  .catch(e=>toast(e.message==='unknown_action'?'Paste the newer QuestDeck.gs into your sheet script and deploy a new version, then try again.':e.message==='exists'?'That category is already there.':e.message==='protected'?'That one is needed by the sheet and cannot be removed.':'Could not reach your sheet. Check your connection and try again.'))}
 
 /* ---------- chest reveal ---------- */
 let chestTimer=null;
@@ -1648,7 +1701,7 @@ document.addEventListener('click',e=>{
   if(a==='fu-dismiss'){dismissFollowUp();return}
   if(a==='fu-start'){toggleToday(id);dismissFollowUp();toast('Planned for today.');return}
   if(a==='fu-off'){dismissFollowUp();saveMeta({hintsOff:true});toast('Follow-up hints are off. Turn them back on in Spend time.');return}
-  if(a==='hints-toggle'){saveMeta({hintsOff:!S.meta.hintsOff});openRewardsSheet();return}
+  if(a==='hints-toggle'){saveMeta({hintsOff:!S.meta.hintsOff});return}
   if(a==='cal-add'){addToCalendar(el.dataset.w);return}
   if(a==='cal-resync'){const t=S.tasks[id];if(t){saveTask({...t,calAdded:null});toast('This task syncs from Quest Deck again.');closeSheet()}return}
   if(a==='sugg-paste'){suggPaste();return}
@@ -1660,7 +1713,7 @@ document.addEventListener('click',e=>{
   if(a==='cal-week'){S.calDay=addDays(S.calDay||today(),7*+id);render();return}
   if(a==='cal-today'){S.calDay=today();S.tlDay=null;render();return}
   if(a==='cal-refresh'){calRefresh();return}
-  if(a==='rewards'){openRewardsSheet();return}
+  if(a==='rewards'){setView('admin');return}
   if(a==='resched'){openRescheduleSheet(id);return}
   if(a==='rs-quick'){reschedule(id,el.dataset.d,el.dataset.h);return}
   if(a==='open-project'){S.view='projects';S.openProject=id;try{history.replaceState(null,'','#projects')}catch{}render();window.scrollTo({top:0});return}
@@ -1696,6 +1749,16 @@ document.addEventListener('click',e=>{
   if(a==='slept'){saveNight({hours:+id});return}
   if(a==='bed-earlier'){const[h,m]=(S.meta.sleep?.bed||'01:00').split(':').map(Number);const x=(h*60+m-30+1440)%1440;const bed=pad(Math.floor(x/60))+':'+pad(x%60);saveMeta({sleep:{...(S.meta.sleep||{}),bed}});toast(`Lights out by <b>${bed}</b> this week.`);return}
   if(a==='money-setup'){openMoneySheet();return}
+  if(a==='cat-color'){const list=curCats();const x=list.find(c=>c.n===id);if(!x)return;x.c=CAT_PALETTE[(CAT_PALETTE.indexOf(x.c)+1)%CAT_PALETTE.length];saveMeta({cats:list});return}
+  if(a==='cat-rename'){delArmed=null;sheet(`<form class="sheet" data-form="cat-rename" data-id="${esc(id)}" role="dialog" aria-label="Rename category" autocomplete="off"><h2>Rename category</h2>
+    <div class="field"><label for="cr-name">Name</label><input id="cr-name" value="${esc(id)}" maxlength="20" required></div>
+    <div style="color:var(--muted);font-size:14px">Tasks and projects in this category move to the new name.</div>
+    <div class="foot"><button type="button" class="btn ghost" data-act="close-sheet">Cancel</button><button class="btn primary" type="submit">Save</button></div></form>`);document.getElementById('cr-name').select();return}
+  if(a==='cat-del'){if(delArmed!=='cat:'+id){delArmed='cat:'+id;el.textContent='Tap again';return}delArmed=null;
+    const before=curCats();saveMeta({cats:before.filter(c=>c.n!==id)});toast(`Removed <b>${esc(id)}</b>. Its tasks are kept, without a category.`,()=>saveMeta({cats:before}));return}
+  if(a==='mcat-del'){if(delArmed!=='mcat:'+id){delArmed='mcat:'+id;el.textContent='Tap again';return}delArmed=null;moneyCatCall({qd:'removeCategory',name:id},`Removed <b>${esc(id)}</b> from your sheet's list`);return}
+  if(a==='quick-del'){const q=[...(S.meta.money?.quick||[])];q.splice(+id,1);saveMeta({money:{...(S.meta.money||{}),quick:q}});return}
+  if(a==='note-chip'){const inp=document.getElementById('p-note');if(inp)inp.value=id;return}
   if(a==='pay-edit'){openPaySheet(+el.dataset.row);return}
   if(a==='money-budgets'){openBudgetSheet();return}
   if(a==='money-tab'){M.tab=id;render();window.scrollTo({top:0});return}
@@ -1724,6 +1787,21 @@ document.addEventListener('submit',e=>{e.preventDefault();const f=e.target;
   if(f.dataset.form==='start'){const t=S.tasks[f.dataset.id];if(!t)return;const feel=document.getElementById('s-feel').dataset.v||null;const step=document.getElementById('s-step').value.trim();
     saveTask({...t,firstStep:step,starts:(t.starts||0)+1,feels:[...(t.feels||[]).slice(-19),{at:new Date().toISOString(),f:feel}]});
     closeSheet();tone([440,554,660,880],.1,.07);buzz(20);burst(null,false);setTimer({id:t.id,until:Date.now()+120000,mins:2,feel});S.view='focus';render();window.scrollTo({top:0});return}
+  if(f.dataset.form==='cat-add'){const inp=document.getElementById('ac-name');const n=inp.value.trim().replace(/\s+/g,' ');if(!n)return;
+    if(n.toLowerCase()==='all'||CATS.some(c=>c.toLowerCase()===n.toLowerCase())){toast('That category is already there.');return}
+    const list=curCats();const taken=list.map(x=>({'--work':'--blue','--personal':'--green','--ministry':'--purple'})[x.c]||x.c);const free=CAT_PALETTE.find(c=>!taken.includes(c))||CAT_PALETTE[list.length%CAT_PALETTE.length];
+    saveMeta({cats:[...list,{n,c:free}]});toast(`Added <b>${esc(n)}</b>`);return}
+  if(f.dataset.form==='cat-rename'){const old=f.dataset.id;const n=document.getElementById('cr-name').value.trim().replace(/\s+/g,' ');closeSheet();if(!n||n===old)return;
+    if(n.toLowerCase()==='all'||CATS.some(c=>c!==old&&c.toLowerCase()===n.toLowerCase())){toast('That name is already in use.');return}
+    tasks().filter(t=>t.cat===old).forEach(t=>saveTask({...t,cat:n}));Object.values(S.projects).filter(p=>p.area===old).forEach(p=>saveProject({...p,area:n}));
+    if(S.area===old){S.area=n;try{localStorage.setItem('qd-area',n)}catch{}}
+    saveMeta({cats:curCats().map(c=>c.n===old?{...c,n}:c)});toast(`Renamed to <b>${esc(n)}</b>`);return}
+  if(f.dataset.form==='mcat-add'){const inp=document.getElementById('am-name');const n=inp.value.trim().replace(/\s+/g,' ');if(!n)return;
+    if((M.cats||[]).some(c=>c.toLowerCase()===n.toLowerCase())){toast('That category is already there.');return}
+    moneyCatCall({qd:'addCategory',name:n},`Added <b>${esc(n)}</b> to your sheet`);return}
+  if(f.dataset.form==='quick-add'){const inp=document.getElementById('aq-name');const n=inp.value.trim();if(!n)return;const q=S.meta.money?.quick||[];
+    if(q.some(x=>x.toLowerCase()===n.toLowerCase())){toast('That one is already there.');return}
+    saveMeta({money:{...(S.meta.money||{}),quick:[...q,n].slice(0,24)}});return}
   if(f.dataset.form==='budgets'){const g=id=>Math.max(0,Math.round(+document.getElementById(id).value||0));
     saveMeta({money:{...(S.meta.money||{}),dayLimit:g('b-day'),weekLimit:g('b-week'),monthLimit:g('b-month')}});closeSheet();toast('Budgets saved');return}
   if(f.dataset.form==='pay'){const row=+f.dataset.row;const r=(M.rows||[]).find(x=>x.row===row);if(!r)return;const g=k=>document.getElementById(k);
@@ -1819,14 +1897,14 @@ function sampleData(){const td=today();const iso=new Date().toISOString();
 async function boot(){render();if(S.view==='money')moneyLoad();
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&S.view==='money')moneyLoad()});
   let db=null;try{db=window.claude&&window.claude.use?await window.claude.use('db'):null}catch{db=null}
-  if(!db){const d=local.load()||sampleData();S.projects=d.projects||{};S.tasks=d.tasks||{};S.meta=d.meta||{};S.mode='local';render();return}
+  if(!db){const d=local.load()||sampleData();S.projects=d.projects||{};S.tasks=d.tasks||{};S.meta=d.meta||{};syncCats();S.mode='local';render();return}
   S.db=db;const got={p:false,t:false};
   const timer=setTimeout(()=>{if(S.mode==='connecting'){S.mode='slow';render()}},10000);
   const ok=snap=>{if(!snap.metadata.fromCache&&got.p&&got.t){clearTimeout(timer);S.mode='sync'}else if(S.mode==='connecting'&&got.p&&got.t)S.mode='slow'};
   const fail=()=>{clearTimeout(timer);S.mode='slow';render();toast('Lost connection to your saved lists. Reload the page to reconnect.')};
   db.collection('projects').onSnapshot(s=>{const m={};s.docs.forEach(d=>m[d.id]={id:d.id,...d.data()});S.projects=m;got.p=true;ok(s);render()},fail);
   db.collection('tasks').onSnapshot(s=>{const m={};s.docs.forEach(d=>m[d.id]={id:d.id,...d.data()});S.tasks=m;got.t=true;ok(s);render()},fail);
-  db.doc('meta/state').onSnapshot(s=>{S.meta=s.exists?{...s.data()}:{};render()},()=>{});
+  db.doc('meta/state').onSnapshot(s=>{S.meta=s.exists?{...s.data()}:{};syncCats();render()},()=>{});
 }
 // redraw when the day rolls over or the evening report becomes due
 let lastKey='';setInterval(()=>{const k=today()+(new Date().getHours()>=18);if(k!==lastKey){lastKey=k;render()}},60000);lastKey=today()+(new Date().getHours()>=18);

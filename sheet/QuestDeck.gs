@@ -37,6 +37,8 @@ function questDeckHandle_(e) {
     if (body.qd === 'list') return qdOut_(qdList_(ss, sh, body));
     if (body.qd === 'categorize') return qdOut_(qdCategorize_(ss, sh, body));
     if (body.qd === 'update') return qdOut_(qdUpdate_(ss, sh, body));
+    if (body.qd === 'addCategory') return qdOut_(qdCategoryAdd_(ss, body));
+    if (body.qd === 'removeCategory') return qdOut_(qdCategoryRemove_(ss, body));
   } catch (err) {
     return qdOut_({ ok: false, error: 'failed', detail: String(err) });
   }
@@ -128,6 +130,47 @@ function qdCategorize_(ss, sh, body) {
 
   if (body.remember && category !== 'Ignored' && !generic && target.merchant) qdRemember_(ss, target.merchant, category);
   return { ok: true, updated: updated };
+}
+
+/** Where the category list sits on the Settings tab: the row of its "Category" heading in column D. */
+function qdCategoryHead_(st) {
+  var vals = st.getRange(1, 4, Math.min(60, st.getMaxRows()), 1).getDisplayValues();
+  for (var i = 0; i < vals.length; i++) if (String(vals[i][0]).trim().toLowerCase() === 'category') return i + 1;
+  return 0;
+}
+
+/** Adds a category to the end of the list on the Settings tab (column D). */
+function qdCategoryAdd_(ss, body) {
+  var st = ss.getSheetByName(QD_SETTINGS);
+  var head = st ? qdCategoryHead_(st) : 0;
+  if (!head) return { ok: false, error: 'no_category_list' };
+  var name = qdClean_(String(body.name || '').slice(0, 30));
+  if (!name) return { ok: false, error: 'bad_name' };
+  var names = qdCategories_(ss);
+  for (var i = 0; i < names.length; i++) if (names[i].toLowerCase() === name.toLowerCase()) return { ok: false, error: 'exists' };
+  st.getRange(head + 1 + names.length, 4).setValue(name);
+  return { ok: true, categories: qdCategories_(ss) };
+}
+
+/**
+ * Removes a category from the list (column D) and closes the gap, keeping each
+ * category's budget in column E on the same row. Past payments are not touched.
+ */
+function qdCategoryRemove_(ss, body) {
+  var st = ss.getSheetByName(QD_SETTINGS);
+  var head = st ? qdCategoryHead_(st) : 0;
+  if (!head) return { ok: false, error: 'no_category_list' };
+  var name = String(body.name || '').trim();
+  if (/^(uncategorized|cash withdrawal)$/i.test(name)) return { ok: false, error: 'protected' };
+  var names = qdCategories_(ss);
+  var idx = names.indexOf(name);
+  if (idx < 0) return { ok: true, categories: names };
+  var range = st.getRange(head + 1, 4, names.length, 2);
+  var block = range.getValues();
+  block.splice(idx, 1);
+  block.push(['', '']);
+  range.setValues(block);
+  return { ok: true, categories: qdCategories_(ss) };
 }
 
 /** Text that begins with = + - or @ would be read as a formula, so it is made plain text. */
