@@ -455,6 +455,59 @@ canvas.fx{position:fixed;inset:0;pointer-events:none;z-index:70;width:100%;heigh
 .fu-a .linkbtn{margin-left:auto;font-size:12.5px;color:var(--muted);font-weight:500}
 .fu-next{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;color:var(--muted);padding-top:6px;border-top:.5px solid var(--line)}
 .fu-next b{color:var(--ink);font-weight:600}
+
+/* ---------- focus + money ---------- */
+@media (max-width:899px){nav.tabs{padding-left:max(3px,env(safe-area-inset-left,0px));padding-right:max(3px,env(safe-area-inset-right,0px))}nav.tabs button{font-size:9px;letter-spacing:0;min-width:0}nav.tabs button .ico{width:23px;height:23px}}
+.timer{background:var(--accent);color:#fff;border-radius:20px;padding:22px 18px;gap:8px;text-align:center;justify-items:center}
+.timer .eyebrow{color:rgba(255,255,255,.82)}
+.timer .of{color:rgba(255,255,255,.85);font-size:14px}
+.timer .t{font:700 64px/1 var(--f-round);letter-spacing:-.03em}
+.timer .now{font:700 21px/1.25 var(--f-display);overflow-wrap:anywhere}
+.timer .tbtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.timer .btn{background:#fff;color:#0062cc}
+.timer .btn.ghost{background:none;color:#fff}
+.fwins{display:grid;gap:10px}
+.fcard{background:var(--surface);border-radius:var(--r);padding:12px 14px 14px 16px;display:grid;gap:10px;position:relative;overflow:hidden}
+.fcard::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:4px;border-radius:0 4px 4px 0;background:var(--line)}
+.fcard.frog::before{background:var(--orange)}
+.fcard.won::before{background:var(--green)}
+.fcard .slot{font:600 12px var(--f-body);letter-spacing:.05em;color:var(--muted)}
+.fcard.frog .slot{color:var(--warn)}
+.fcard .row:hover{background:none}
+.fhead{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:30px}
+.fbtns{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.fbtns .sub{font-size:14px;color:var(--muted)}
+.park{position:relative}
+.park input{width:100%;border:0;background:var(--surface);border-radius:12px;padding:13px 84px 13px 16px;font-size:17px;outline:none}
+.park input::placeholder{color:var(--faint)}
+.park input:focus{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent)}
+.park .btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:7px 14px;font-size:15px;border-radius:99px}
+.park .btn:active{transform:translateY(-50%) scale(.96)}
+.qcard{background:var(--surface);border-radius:var(--r);padding:16px;display:grid;gap:14px}
+.qnote{font-size:14px;color:var(--muted);line-height:1.4}
+.nights{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;text-align:center;font-size:12px;color:var(--muted)}
+.nights b{display:block;font:700 18px var(--f-round);color:var(--ink)}
+.nights i{display:block;width:8px;height:8px;border-radius:50%;margin:4px auto 0;background:var(--sunk)}
+.nights i.on{background:var(--green)}
+.toggle{display:flex;gap:10px;align-items:center;border:0;background:var(--sunk);border-radius:12px;padding:12px 14px;font-weight:500;font-size:16px;text-align:left;width:100%}
+.toggle[aria-pressed="true"]{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--ok)}
+.toggle .box{width:22px;height:22px;border-radius:50%;border:2px solid currentColor;display:grid;place-items:center;flex:none}
+.toggle .box .ico{width:13px;height:13px;stroke-width:3;visibility:hidden}
+.toggle[aria-pressed="true"] .box .ico{visibility:visible}
+.mstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mstat{background:var(--surface);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px;min-width:0}
+.mstat b{font:700 21px var(--f-round);letter-spacing:-.02em;overflow-wrap:anywhere}
+.mstat small{font-size:13px;color:var(--muted)}
+.mleft{font:700 20px var(--f-display);letter-spacing:-.02em}
+.mbar{height:8px;background:var(--sunk);border-radius:99px;overflow:hidden}
+.mbar i{display:block;height:100%;border-radius:99px;background:var(--green)}
+.mbar.over i{background:var(--danger)}
+.mlimit{display:flex;gap:8px}
+.mlimit input{flex:1;min-width:0;border:0;background:var(--sunk);border-radius:10px;padding:11px 13px;font-size:17px;outline:none}
+.mhead{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:0 4px}
+.amt{font:600 16px var(--f-round);flex:none;margin-left:auto;white-space:nowrap;align-self:center}
+.pay{display:grid;gap:2px}
+.pay b{font:700 36px/1.1 var(--f-round);letter-spacing:-.03em}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -511,9 +564,11 @@ const ICON={
   spark:'<svg class="ico" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>',
   people:'<svg class="ico" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6M18 14.8c2 .6 3.5 2.4 3.5 5.2"/></svg>',
   trash:'<svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
-  left:'<svg class="ico" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>'
+  left:'<svg class="ico" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>',
+  play:'<svg class="ico" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',
+  rupee:'<svg class="ico" viewBox="0 0 24 24"><path d="M7 5h10M7 9h10M7 5c6 0 6 8 0 8l7 7"/></svg>'
 };
-const VIEWS=[['today','Today',ICON.today],['inbox','Inbox',ICON.inbox],['projects','Projects',ICON.boss],['upcoming','Upcoming',ICON.cal],['matrix','Matrix',ICON.grid],['review','Review',ICON.review]];
+const VIEWS=[['focus','Focus',ICON.bolt],['today','Today',ICON.today],['inbox','Inbox',ICON.inbox],['projects','Projects',ICON.boss],['upcoming','Upcoming',ICON.cal],['matrix','Matrix',ICON.grid],['review','Review',ICON.review],['money','Money',ICON.rupee]];
 const CATS=['Work','Personal','Ministry'];
 const CATVAR={Work:'--work',Personal:'--personal',Ministry:'--ministry'};
 const COLORS=['c1','c2','c3','c4','c5','c6'];
@@ -553,7 +608,7 @@ const DOWL=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTHS=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const DEFAULT_REWARDS=[{id:'r1',name:'Social media',cost:15},{id:'r2',name:'Games',cost:30}];
 
-const S={projects:{},tasks:{},meta:{},mode:'connecting',db:null,view:'today',area:'All',openProject:null,showReport:false,coach:null};
+const S={projects:{},tasks:{},meta:{},mode:'connecting',db:null,view:'focus',area:'All',openProject:null,showReport:false,coach:null};
 try{const a=localStorage.getItem('qd-area');if(a&&(a==='All'||CATS.includes(a)))S.area=a}catch{}
 let soundOn=true;try{soundOn=localStorage.getItem('qd-sound')!=='off'}catch{}
 const h=location.hash.slice(1);if(VIEWS.some(v=>v[0]===h))S.view=h;
@@ -711,7 +766,7 @@ function radar(){const td=today();const items=[];
   const inbox=openTasks().filter(t=>t.status==='inbox').length;
   if(inbox>=8)items.push({sev:'info',tag:'Inbox',msg:`${inbox} unsorted items`,sub:'Process the inbox so nothing hides in there.',view:'inbox',rank:5});
   const lr=(S.meta.reviews||[]).slice(-1)[0];const since=lr?diffDays(td,lr):null;
-  if(since==null||since>=7)items.push({sev:since==null||since>=10?'warning':'info',tag:'Review',msg:'Weekly review is due',sub:since==null?'Do your first one. It takes 20 minutes and earns 15 bonus minutes.':`Last one was ${since} days ago.`,view:'review',rank:6});
+  if(since==null||since>=7)items.push({sev:since==null||since>=10?'warning':'info',tag:'Review',msg:'Weekly review is due',sub:since==null?'Do your first one. It takes 20 minutes.':`Last one was ${since} days ago.`,view:'review',rank:6});
   if(S.area==='All'){const ws=weekStart();const wk=tasks().filter(t=>t.status==='done'&&isoDay(t.doneAt)>=ws);const quiet=CATS.filter(c=>projects().some(p=>p.area===c)&&!wk.some(t=>catOf(t)===c));
     if(wk.length>=5&&quiet.length)items.push({sev:'info',tag:'Balance',msg:`${quiet.join(' and ')} got nothing done this week`,sub:'Pick one small task there for tomorrow so it does not quietly fall apart.',rank:7})}
   return items.sort((a,b)=>a.rank-b.rank)}
@@ -738,25 +793,17 @@ function addFromText(text,extra={}){const o=parseQuick(text);if(!o.title)return;
 
 function completeTask(id,ev){const t=S.tasks[id];if(!t)return;const prev={...t};const td=today();
   if(t.status==='done'){saveTask({...t,status:t.prevStatus||'next',doneAt:null,loot:null});return}
-  const c=comboNow();const combo=c?c.n+1:1;const mult=comboMult(combo);
-  const lucky=t.mustWinOn===td||(t.due&&diffDays(t.due,td)>warnOf(t));
-  const base=BASE_MIN[t.size]||BASE_MIN.M;const comboBonus=mult>1?(mult-1)*5:0;
-  const r=roll(lucky);const loot={tier:r.tier,tokens:base+r.tokens+comboBonus,bonus:r.tokens+comboBonus,ticket:false,combo};
   const ringBefore=dayNumbers().closed;
-  saveTask({...t,prevStatus:t.status,status:'done',doneAt:new Date().toISOString(),loot,carried:0});
+  saveTask({...t,prevStatus:t.status,status:'done',doneAt:new Date().toISOString(),loot:null,carried:0});
   let spawned=null;
-  if(t.recur){spawned={...t,id:'t_'+uid(),due:nextDue(t),status:'next',createdAt:new Date().toISOString(),todayOn:null,mustWinOn:null,doneAt:null,loot:null,carried:0,resched:0};delete spawned.prevStatus;stampStart(spawned);saveTask(spawned)}
-  chestSound(r.tier,combo);buzz(r.tier==='common'?15:[20,40,30]);
-  const why=[lucky?(t.mustWinOn===td?'must-win luck':'early-bird luck'):null,mult>1?`combo ×${mult}`:null].filter(Boolean).join(' · ');
-  if(r.tokens>0){burst(ev,r.tier!=='rare');showChest(r.tier,r.tokens+comboBonus,false,why)}
-  else burst(ev,false);
-  toast(`<b>+${loot.tokens} min</b> screen time${combo>1?` · combo ${combo}`:''}${why&&!(r.tokens>0)?' · '+why:''}`,()=>{saveTask(prev);dismissFollowUp();if(spawned)deleteTask(spawned.id)});
+  if(t.recur){spawned={...t,id:'t_'+uid(),due:nextDue(t),status:'next',createdAt:new Date().toISOString(),todayOn:null,mustWinOn:null,frogOn:null,starts:0,doneAt:null,loot:null,carried:0,resched:0};delete spawned.prevStatus;stampStart(spawned);saveTask(spawned)}
+  tone([523,784]);buzz(15);burst(ev,false);
+  toast(`Done: <b>${esc(t.title)}</b>`,()=>{saveTask(prev);dismissFollowUp();if(spawned)deleteTask(spawned.id)});
   setTimeout(()=>showFollowUp(prev),900);
   const dn=dayNumbers();
   if(!ringBefore&&dn.closed&&!(S.meta.ringDays||[]).includes(td)){
-    const b={at:new Date().toISOString(),tokens:10,ticket:false,why:'Ring closed'};
-    saveMeta({ringDays:[...(S.meta.ringDays||[]),td].slice(-60),bonuses:[...(S.meta.bonuses||[]),b]});
-    setTimeout(()=>{showChest('epic',b.tokens,b.ticket,'You closed today\'s ring');burst(null,true);tone([523,659,784,1047,1319],.18,.1)},900)}
+    saveMeta({ringDays:[...(S.meta.ringDays||[]),td].slice(-60)});
+    setTimeout(()=>{burst(null,true);tone([523,659,784,1047,1319],.18,.1);toast('<b>Ring closed.</b> You did what you planned today.')},900)}
   const wins=tasks().filter(x=>x.mustWinOn===td);
   if(t.mustWinOn===td&&wins.length>=3&&wins.every(x=>x.status==='done'))setTimeout(()=>toast('<b>All 3 must-wins done.</b> That is what a good day looks like.'),1600)}
 
@@ -824,22 +871,22 @@ let raf=0;function render(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;d
 function draw(){
   const inboxN=openTasks().filter(t=>t.status==='inbox').length;
   const overdue=openTasks().filter(t=>t.due&&t.due<today()&&t.status!=='inbox').length;
-  document.getElementById('tabs').innerHTML=VIEWS.map(([k,l,ic])=>{const c=k==='inbox'?inboxN:k==='today'?overdue:0;
+  document.getElementById('tabs').innerHTML=VIEWS.map(([k,l,ic])=>{const c=k==='inbox'?inboxN:k==='today'?overdue:k==='money'?moneyTodo().length:0;
     return `<button data-view="${k}" ${S.view===k?'aria-current="page"':''}>${ic}<span>${l}</span>${c?`<span class="count ${k==='today'?'hot':''}">${c}</span>`:''}</button>`}).join('');
   const sync={connecting:['','Connecting…'],sync:['ok','Synced across devices'],slow:['warn','Saved copy · reconnecting'],local:['warn','This device only']}[S.mode];
   document.getElementById('sync').innerHTML=`<span class="dot ${sync[0]}"></span>${sync[1]}`;
   const counts={};CATS.forEach(c=>counts[c]=openTasks().filter(t=>catOf(t)===c&&t.status!=='someday').length);
   document.getElementById('cats').innerHTML=['All',...CATS].map(c=>`<button class="cat" data-act="area" data-id="${c}" aria-pressed="${S.area===c}">${c!=='All'?`<i style="background:var(${CATVAR[c]})"></i>`:''}${c}${c!=='All'?`<span class="n">${counts[c]}</span>`:''}</button>`).join('');
-  const titles={today:'Today',inbox:'Inbox',projects:'Projects',upcoming:'Upcoming',matrix:'Matrix',review:'Review'};
+  const titles={today:'Today',inbox:'Inbox',projects:'Projects',upcoming:'Upcoming',matrix:'Matrix',review:'Review',focus:'Focus',money:'Money'};
   setTimeout(autoLayout,0);
   document.getElementById('lt-title').textContent=titles[S.view]||'Today';
   document.getElementById('lt-eyebrow').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('hud').hidden=S.view!=='today';
-  document.getElementById('cats').hidden=S.view==='review';
-  document.getElementById('capture').hidden=S.view==='review';
+  document.getElementById('cats').hidden=['review','focus','money'].includes(S.view);
+  document.getElementById('capture').hidden=['review','focus','money'].includes(S.view);
   if(S.view==='today')drawHud();
   const v=document.getElementById('view');
-  const html={today:viewToday,inbox:viewInbox,projects:viewProjects,upcoming:viewUpcoming,matrix:viewMatrix,review:viewReview}[S.view]();
+  const html={focus:viewFocus,money:viewMoney,today:viewToday,inbox:viewInbox,projects:viewProjects,upcoming:viewUpcoming,matrix:viewMatrix,review:viewReview}[S.view]();
   const banner='';
   v.innerHTML=banner+html;
   const tl=document.getElementById('tl');
@@ -847,7 +894,7 @@ function draw(){
     if(S.tlDay!==day){S.tlDay=day;const first=itemsOn(day).timed[0];const focus=day===today()?Math.max(h0*60,mins(new Date())-60):first?Math.max(h0*60,first.s-30):9*60;S.tlTop=Math.max(0,(focus-h0*60)/60*TL_H)}
     tl.scrollTop=S.tlTop||0}}
 
-function drawHud(){const st=stats();const dn=dayNumbers();const c=comboNow();const sess=S.meta.session;
+function drawHud(){const st=stats();const dn=dayNumbers();
   const pct=Math.min(1,dn.doneToday.length/dn.target);const R=40,C=2*Math.PI*R;
   const left=Math.max(0,dn.target-dn.doneToday.length);
   const line=dn.closed?'<b>Ring closed.</b> Anything more is extra credit.':left===1?'<b>1 more task</b> closes today\'s ring':`<b>${left} more tasks</b> close today's ring`;
@@ -858,20 +905,11 @@ function drawHud(){const st=stats();const dn=dayNumbers();const c=comboNow();con
      <circle class="trk" cx="50" cy="50" r="${R}"/><circle class="val" cx="50" cy="50" r="${R}" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-pct)}"/></svg>
      <div class="num">${dn.closed?ICON.check:`<div><b>${dn.doneToday.length}/${dn.target}</b></div>`}</div></div>`;
   const flame=`<span class="stat flame ${st.todayDone?'lit':st.atRisk?'risk':''}">${ICON.flame}<b>${st.streak}</b> day streak${streakTxt}</span>`;
-  if(sess){el.className='hud live';
-    el.innerHTML=`${ring}<div class="hud-main"><div class="hud-label">${esc(sess.name)} · unlocked</div><div class="bank"><b data-sess-clock>0:00</b></div><div class="hud-line">Enjoy it. You earned this.</div></div>
-      <div class="hud-foot">${flame}<button class="spend" data-act="end-session">End session</button></div>`;
-    tickCombo();return}
   el.className='hud';
-  el.innerHTML=`${ring}<div class="hud-main"><div class="hud-label">Screen time earned</div><div class="bank">${bankHtml(st.tokens)}</div><div class="hud-line">${line}</div></div>
+  el.innerHTML=`${ring}<div class="hud-main"><div class="hud-label">Done today</div><div class="bank"><b>${dn.doneToday.length}</b><span>of ${dn.target}</span></div><div class="hud-line">${line}</div></div>
     <button class="cal-refresh ${S.calBusy?'busy':''}" data-act="cal-refresh" ${S.calBusy?'disabled':''}>${ICON.review}<span>${S.calBusy?'Refreshing…':'Refresh calendar'}</span>${S.calLast&&!S.calBusy?`<small>updated ${S.calLast.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).toLowerCase()}</small>`:''}</button>
-    <div class="hud-foot">${flame}<button class="spend" data-act="rewards" aria-label="Spend screen time">Spend time${ICON.right}</button></div>`;
-  tickCombo()}
-function tickCombo(){const sess=S.meta.session;
-  if(sess){const ms=sess.end-Date.now();if(ms<=0){endSession(false);return}
-    const m=Math.floor(ms/60000),sc=Math.floor(ms%60000/1000);document.querySelectorAll('[data-sess-clock]').forEach(e=>e.textContent=`${m}:${pad(sc)}`)}
-  document.querySelectorAll('[data-until]').forEach(el=>{const ms=+el.dataset.until-Date.now();if(ms<=0){render();return}const m=Math.floor(ms/60000),sc=Math.floor(ms%60000/1000);el.textContent=`${m}:${pad(sc)} left`})}
-setInterval(tickCombo,1000);
+    <div class="hud-foot">${flame}<button class="spend" data-act="rewards" aria-label="Settings">Settings${ICON.right}</button></div>`}
+function tickCombo(){}
 setInterval(()=>{if(!document.querySelector('.sheet'))render()},60000);
 
 function taskRow(t,opts={}){const td=today();const p=projOf(t);const done=t.status==='done';const cat=catOf(t);
@@ -884,14 +922,12 @@ function taskRow(t,opts={}){const td=today();const p=projOf(t);const done=t.stat
   if(t.status==='waiting')meta.push(`<span>${ICON.wait}Waiting on ${esc(t.waitingOn||'someone')}</span>`);
   if(t.recur)meta.push(`<span>${ICON.repeat}${esc(recurLabel(t))}</span>`);
   if(opts.badge&&!done&&(t.priority||3)<=2)meta.unshift(`<span class="pri p${t.priority}">${t.priority===1?'Critical':'Important'}</span>`);
-  if(done&&t.loot)meta.push(`<span class="gain">+${t.loot.tokens} min</span>`);
-  if(!done)meta.unshift(`<span class="gain">+${BASE_MIN[t.size]||BASE_MIN.M} min</span>`);
   if(!done&&t.carried>=2)meta.push(`<span class="late">moved ${t.carried}×</span>`);
   return `<div class="row ${done?'done':''}"${opts.bare?' style="padding:0;border:0"':''}>
     <button class="check p${t.priority||3}" data-act="done" data-id="${t.id}" aria-label="${done?'Mark not done':'Complete'}: ${esc(t.title)}">${ICON.check}</button>
     <div class="body"><button class="title" data-act="edit" data-id="${t.id}">${esc(t.title)}</button>${meta.length?`<div class="meta">${meta.join('')}</div>`:''}</div>
     ${done?'':opts.quad?`<div class="acts"><button class="ib" data-act="quad-move" data-id="${t.id}" aria-label="Move to another quadrant" title="Move">${ICON.grid}</button></div>`:opts.del?`<div class="acts">${isMissed(t)?`<button class="ib resched" data-act="resched" data-id="${t.id}" aria-label="Reschedule" title="Reschedule">${ICON.repeat}</button>`:''}<button class="ib" data-act="del" data-id="${t.id}" aria-label="Delete ${esc(t.title)}" title="Delete">${ICON.trash}</button></div>`:`<div class="acts">${isMissed(t)?`<button class="ib resched" data-act="resched" data-id="${t.id}" aria-label="Reschedule" title="Reschedule">${ICON.repeat}</button>`:''}${opts.today===false?'':`<button class="ib today ${t.todayOn===td?'on':''}" data-act="today" data-id="${t.id}" aria-label="Plan for today" title="Plan for today">${ICON.sun}</button>`}
-      <button class="ib ${t.mustWinOn===td?'on':''}" data-act="win" data-id="${t.id}" aria-label="Make a must-win" title="Must-win (max 3 a day, better odds of a bonus)">${ICON.star}</button></div>`}
+      <button class="ib ${t.mustWinOn===td?'on':''}" data-act="win" data-id="${t.id}" aria-label="Make a must-win" title="Must-win (max 3 a day)">${ICON.star}</button></div>`}
   </div>`}
 const sortTasks=a=>a.sort((x,y)=>(x.priority||3)-(y.priority||3)||((x.due||'9999')<(y.due||'9999')?-1:(x.due||'9999')>(y.due||'9999')?1:0));
 const listOf=(ts,o)=>`<div class="list">${ts.map(t=>taskRow(t,o)).join('')}</div>`;
@@ -931,7 +967,7 @@ function reportHtml(){const r=dayReport();const max=Math.max(1,...r.byCat.map(x=
     ${r.soon.length?`<div class="empty-note solid"><b>Coming up in 3 days:</b> ${r.soon.map(t=>`${esc(t.title)} (${dueLabel(t.due).t})`).join(' · ')}</div>`:''}
     <div id="coach-box">${S.coach?`<div class="coach">${esc(S.coach)}</div>`:''}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      ${r.closed?`<span class="allclear" style="padding:8px 12px">${ICON.check} Day closed</span>`:`<button class="btn primary" data-act="close-day">${ICON.moon}Close my day · earn bonus time</button>`}
+      ${r.closed?`<span class="allclear" style="padding:8px 12px">${ICON.check} Day closed</span>`:`<button class="btn primary" data-act="close-day">${ICON.moon}Close my day</button>`}
       <button class="btn" data-act="coach" id="coach-btn">Get a coach's honest take</button>
       ${S.showReport?`<button class="btn ghost" data-act="hide-report">Hide</button>`:''}
     </div></section>`}
@@ -952,8 +988,8 @@ function viewToday(){const td=today();
    ${winSlots?`<section><div class="sec-head"><h2>Must-wins</h2></div><div class="wins">${winSlots}</div></section>`:''}
    ${todayList.length?`<section><div class="sec-head"><h2>Today</h2></div>${listOf(todayList)}</section>`:''}
    ${suggest.length?`<section><div class="sec-head"><h2>Up next</h2><button class="btn sm" data-act="lucky">Pick one for me</button></div>${listOf(suggest)}</section>`:''}
-   ${doneToday.length?`<section><div class="sec-head"><h2>Done today</h2><span class="sub">${fmtMin(doneToday.reduce((s,t)=>s+(t.loot?.tokens||0),0))} earned</span></div>${listOf(doneToday)}</section>`:''}
-   ${(!rd.length&&!winSlots&&!todayList.length&&!suggest.length&&!doneToday.length)?`<div class="empty-note"><b>Nothing on your plate.</b> Add a task above. Each one shows the screen time it will earn.</div>`:''}
+   ${doneToday.length?`<section><div class="sec-head"><h2>Done today</h2><span class="sub">${doneToday.length} finished</span></div>${listOf(doneToday)}</section>`:''}
+   ${(!rd.length&&!winSlots&&!todayList.length&&!suggest.length&&!doneToday.length)?`<div class="empty-note"><b>Nothing on your plate.</b> Add a task above.</div>`:''}
    ${showRep?'':`<div><button class="btn ghost" data-act="show-report">${ICON.moon}End my day</button></div>`}`}
 
 function viewInbox(){const items=openTasks().filter(t=>t.status==='inbox').sort((a,b)=>(a.createdAt||'')<(b.createdAt||'')?-1:1);
@@ -1244,18 +1280,136 @@ function viewReview(){const ws=weekStart();const checks=S.meta.checks?.week===ws
       <div class="legend"><span><i style="background:var(--line)"></i>planned</span><span><i style="background:var(--ok)"></i>done</span><span>Planned counts appear for days you closed.</span></div>
       <div class="catbars">${CATS.map(c=>{const n=wk.filter(t=>catOf(t)===c).length;return `<div class="catbar"><span>${catDot(c)} ${c}</span><div class="bar"><i style="width:${wk.length?n/wk.length*100:0}%;background:var(${CATVAR[c]})"></i></div><span class="mono" style="color:var(--muted)">${n} done</span></div>`}).join('')}</div>
     </div></section>
-   <section><div class="sec-head"><h2>Weekly review</h2><span class="sub">${doneThisWeek?'Done for this week':'Week of '+fmtDate(ws)} · earns 15 bonus minutes</span></div>
+   <section><div class="sec-head"><h2>Weekly review</h2><span class="sub">${doneThisWeek?'Done for this week':'Week of '+fmtDate(ws)}</span></div>
     <div class="steps">${steps.map(([a,b],i)=>`<div class="step"><input type="checkbox" id="rv-${i}" data-act="check" data-id="${i}" ${checks[i]?'checked':''}><label for="rv-${i}"><b>${a}</b><small>${esc(b)}</small></label></div>`).join('')}</div>
     <div class="outcomes">${[0,1,2].map(i=>`<input id="out-${i}" data-out="${i}" placeholder="Outcome ${i+1} for this week" value="${esc(outs[i]||'')}">`).join('')}</div>
-    <div><button class="btn primary" data-act="finish-review" ${doneThisWeek?'disabled':''}>${doneThisWeek?'Review complete':'Complete review · +15 min'}</button></div></section>
-   <section><div class="sec-head"><h2>How screen time works</h2></div><div class="empty-note solid" style="line-height:1.65">
-     <b>Finish a task, earn minutes.</b> Small is 5, medium 10, large 20. Every task shows what it will pay before you start.<br>
-     <b>Surprise bonus.</b> Some tasks drop an extra 5, 10 or 15 minutes. Must-wins and tasks finished early get better odds.<br>
-     <b>Combos.</b> Finish tasks within ${COMBO_MIN} minutes of each other. From the 3rd in a row, +5 min each. From the 5th, +10.<br>
-     <b>Daily ring.</b> Finish what you planned (at least 3) for a 10 minute bonus.<br>
+    <div><button class="btn primary" data-act="finish-review" ${doneThisWeek?'disabled':''}>${doneThisWeek?'Review complete':'Complete review'}</button></div></section>
+   <section><div class="sec-head"><h2>Ring and streak</h2></div><div class="empty-note solid" style="line-height:1.65">
+     <b>Daily ring.</b> Finish what you planned (at least 3) to close it.<br>
      <b>Streak.</b> One empty day is a rest day. Two in a row reset it. Never miss twice.<br>
-     <b>Spend it.</b> Tap Spend time, pick what you want, and the clock starts. Finish early and the unused minutes come back.<br>
      <span style="color:var(--muted)">${closedDays} days closed so far.</span></div></section>`}
+
+/* ---------- focus: tiny first steps, 2-minute starts, sleep ---------- */
+const FEELS=[['boring','Boring','Boring is allowed. It is only two minutes of boring.'],['scary','Scary','Scared is allowed. You are only opening it, not finishing it.'],
+  ['unclear','Unclear','Then the first step is to write down what is unclear.'],['big','Too big','You are not doing the task. You are doing the first step.'],['tired','Tired','Tired is real. Two minutes, then you may stop.']];
+let T=null;try{T=JSON.parse(localStorage.getItem('qd-timer')||'null');if(T&&Date.now()-T.until>36e5)T=null}catch{}
+function setTimer(t){T=t;try{if(t)localStorage.setItem('qd-timer',JSON.stringify(t));else localStorage.removeItem('qd-timer')}catch{}render()}
+const fmtLeft=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+pad(s%60)};
+function tickTimer(){if(!T)return;const ms=T.until-Date.now();
+  if(ms<=0&&!T.rang){tone([659,784,1047],.16,.1);buzz([60,60,120]);setTimer({...T,rang:true});return}
+  const el=document.getElementById('tm-left');if(el&&ms>0)el.textContent=fmtLeft(ms)}
+setInterval(tickTimer,500);
+function timerHtml(){const t=T&&S.tasks[T.id];if(!t)return '';const ms=T.until-Date.now();const feel=FEELS.find(f=>f[0]===T.feel);
+  if(ms>0)return `<section class="timer" id="timer"><div class="eyebrow">${T.mins} minutes · only this</div><div class="t" id="tm-left" role="timer">${fmtLeft(ms)}</div>
+    <div class="now">${esc(t.firstStep||t.title)}</div>${t.firstStep?`<div class="of">${esc(t.title)}</div>`:''}${feel?`<div class="of">${feel[2]}</div>`:''}
+    <div class="tbtns"><button class="btn" data-act="timer-done" data-id="${t.id}">I finished the task</button><button class="btn ghost" data-act="timer-stop">Stop</button></div></section>`;
+  return `<section class="timer" id="timer"><div class="eyebrow">Time is up</div><div class="now">You started. That was the hard part.</div><div class="of">${esc(t.title)}</div>
+    <div class="tbtns"><button class="btn primary" data-act="timer-more">Keep going · 10 more</button><button class="btn" data-act="timer-done" data-id="${t.id}">I finished it</button><button class="btn ghost" data-act="timer-stop">Stop here</button></div></section>`}
+
+function openStartSheet(id){const t=S.tasks[id];if(!t)return;
+  sheet(`<form class="sheet" data-form="start" data-id="${id}" role="dialog" aria-label="Start 2 minutes">
+    <h2>Start 2 minutes</h2><div style="color:var(--muted);font-size:14px">${esc(t.title)}</div>
+    <div class="field"><span class="lbl">What makes this hard right now? Naming it helps.</span>${segHtml('s-feel','',FEELS.map(f=>[f[0],f[1]]))}</div>
+    <div class="field"><label for="s-step">The tiny first step</label><input id="s-step" value="${esc(t.firstStep||'')}" placeholder="e.g. Open the doc and type the title" required></div>
+    <div class="foot"><button type="button" class="btn" data-act="close-sheet">Not now</button><button class="btn primary" type="submit">Start the timer</button></div></form>`);
+  document.getElementById('s-step').focus()}
+
+function saveNight(patch){const td=today();const all={...(S.meta.nights||{})};all[td]={...(all[td]||{}),...patch};
+  const keep={};Object.keys(all).sort().slice(-45).forEach(k=>keep[k]=all[k]);saveMeta({nights:keep})}
+function nightHtml(){const td=today();const bed=S.meta.sleep?.bed||'01:00';const nights=S.meta.nights||{};const n=nights[td]||{};
+  const days=[...Array(7)].map((_,i)=>{const d=addDays(td,i-6);return{d,...(nights[d]||{})}});
+  const hrs=days.map(x=>x.hours).filter(h=>h!=null);const avg=hrs.length?hrs.reduce((a,b)=>a+b,0)/hrs.length:null;
+  const note=avg==null?'Log last night each morning. It takes one tap.':avg<6?`You averaged ${avg.toFixed(1)} hours. Under 6, starting tasks is harder for anyone. Sleep is the first fix.`:avg<7?`You averaged ${avg.toFixed(1)} hours. Close. Aim for 7.`:`You averaged ${avg.toFixed(1)} hours. This is what makes everything else easier.`;
+  return `<section><div class="sec-head"><h2>Sleep</h2></div>
+   <div class="qcard">
+    <div class="field"><span class="lbl">How long did you sleep last night?</span><div class="seg">${[[4,'4 or less'],[5,'5'],[6,'6'],[7,'7'],[8,'8+']].map(([h,l])=>`<button type="button" data-act="slept" data-id="${h}" aria-pressed="${n.hours===h}">${l}</button>`).join('')}</div></div>
+    <div class="nights">${days.map(x=>`<div>${parseYmd(x.d).toLocaleDateString(undefined,{weekday:'short'})}<b>${x.hours??'–'}</b><i class="${x.phone?'on':''}" title="${x.phone?'Phone was out of the room':'Phone not logged'}"></i></div>`).join('')}</div>
+    <div class="qnote">${note} A green dot means the phone slept outside the room.</div>
+    <button type="button" class="toggle" data-act="phone-out" aria-pressed="${!!n.phone}"><span class="box">${ICON.check}</span>Tonight my phone charges outside the bedroom</button>
+    <div class="fbtns"><div class="field" style="flex:none"><label for="bed">Lights out by</label><input type="time" id="bed" value="${esc(bed)}" style="width:auto"></div>
+      <button type="button" class="btn sm" data-act="bed-earlier" style="align-self:end">Move 30 min earlier</button></div>
+   </div></section>`}
+
+function viewFocus(){const td=today();
+  if(S.mode==='connecting')return `<div class="empty-note">Loading your quests…</div>`;
+  const wins=tasks().filter(t=>t.mustWinOn===td).sort((a,b)=>(a.status==='done')-(b.status==='done')||(b.frogOn===td)-(a.frogOn===td));
+  const cards=wins.map(t=>{const done=t.status==='done';const frog=t.frogOn===td;
+    return `<div class="fcard ${done?'won':''} ${frog?'frog':''}">
+      <div class="fhead"><span class="slot">${frog?'THE FROG · DO THIS FIRST':'MUST-WIN'}</span>${done?'':`<button class="btn sm ghost" data-act="frog" data-id="${t.id}">${frog?'Not the frog':'Make it the frog'}</button>`}</div>
+      ${taskRow(t,{today:false,bare:true})}
+      ${done?'':`<div class="field"><label for="fs-${t.id}">Tiny first step (so small it feels silly)</label><input id="fs-${t.id}" data-step="${t.id}" value="${esc(t.firstStep||'')}" placeholder="e.g. Open the doc and type the title"></div>
+      <div class="fbtns"><button class="btn primary" data-act="start2" data-id="${t.id}">${ICON.play}Start 2 minutes</button>${t.starts?`<span class="sub">Started ${t.starts}×</span>`:''}</div>`}
+    </div>`}).join('');
+  const pool=openTasks().filter(t=>t.mustWinOn!==td&&(t.status==='next'||t.status==='inbox'))
+    .sort((a,b)=>(b.carried||0)-(a.carried||0)||(a.priority||3)-(b.priority||3)||((a.due||'9999')<(b.due||'9999')?-1:(a.due||'9999')>(b.due||'9999')?1:0)).slice(0,6);
+  const room=3-wins.length;
+  return `${timerHtml()}
+   <section><div class="sec-head"><h2>Today's 3</h2><span class="sub">3 at most</span></div>
+     ${wins.length?`<div class="fwins">${cards}</div>`:`<div class="empty-note">Nothing picked yet. Choose up to three below. Start with the one you have been avoiding.</div>`}</section>
+   ${room>0&&pool.length?`<section><div class="sec-head"><h2>Pick ${wins.length?room+' more':'your three'}</h2></div>
+     <div class="list">${pool.map(t=>`<div class="row"><div class="body"><button class="title" data-act="edit" data-id="${t.id}">${esc(t.title)}</button>
+       <div class="meta">${catOf(t)?`<span>${catDot(catOf(t))}${catOf(t)}</span>`:''}${t.carried>=2?`<span class="late">moved ${t.carried}×</span>`:''}${t.due?`<span class="${dueLabel(t.due).c}">${ICON.clock}${dueLabel(t.due).t}</span>`:''}</div></div>
+       <div class="acts"><button class="btn sm" data-act="win" data-id="${t.id}">Pick</button></div></div>`).join('')}</div></section>`:''}
+   <section><div class="sec-head"><h2>Park a thought</h2></div>
+     <form class="park" data-form="park" autocomplete="off"><input id="park-input" placeholder="Something on your mind? Park it here" aria-label="Park a thought"><button class="btn" type="submit">Park</button></form></section>
+   ${nightHtml()}`}
+
+/* ---------- money: reads the expense sheet your bank SMS already fills ---------- */
+const NOSPEND=['Cash Withdrawal','Ignored'];
+let MC={};try{MC=JSON.parse(localStorage.getItem('qd-money')||'{}')||{}}catch{}
+const M={rows:null,cats:[],at:0,busy:false,err:''};
+try{const c=JSON.parse(localStorage.getItem('qd-money-cache')||'null');if(c&&Array.isArray(c.rows)){M.rows=c.rows;M.cats=c.cats||[];M.at=c.at||0}}catch{}
+const cacheMoney=()=>{try{localStorage.setItem('qd-money-cache',JSON.stringify({rows:M.rows,cats:M.cats,at:M.at}))}catch{}};
+const inr=n=>'₹'+Math.round(+n||0).toLocaleString('en-IN');
+const newest=(a,b)=>(b.date+(b.time||'')).localeCompare(a.date+(a.time||''));
+const moneyTodo=()=>(M.rows||[]).filter(r=>r.category==='Uncategorized'&&r.date>=addDays(today(),-2)).sort(newest);
+async function moneyCall(body){const r=await fetch(MC.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({token:MC.token,...body})});return r.json()}
+async function moneyLoad(force){if(!MC.url||M.busy)return;if(!force&&Date.now()-M.at<120000)return;M.busy=true;M.err='';render();
+  try{const d=await moneyCall({qd:'list',since:addDays(today(),-62)});
+    if(!d||d.ok!==true)throw new Error(d&&d.error==='bad_token'?'token':d&&d.ok===false?'script':'missing');
+    M.rows=d.rows||[];M.cats=d.categories||[];M.at=Date.now();cacheMoney()}
+  catch(e){M.err=e.message==='token'?'The secret phrase did not match your script. Open Connection and check it.':e.message==='missing'?'Your sheet answered, but it does not have the Quest Deck addition yet. Add QuestDeck.gs and deploy a new version.':'Could not reach your sheet. Check your connection, then try Refresh.'}
+  M.busy=false;render()}
+function openMoneySheet(){sheet(`<form class="sheet" data-form="money-setup" role="dialog" aria-label="Connect your expense sheet" autocomplete="off">
+    <h2>Connect your expense sheet</h2>
+    <p style="margin:0;font-size:14px;color:var(--muted)">Paste the same Web app URL and secret phrase your iPhone Shortcut uses. They stay on this device and are only ever sent to your own script.</p>
+    <div class="field"><label for="m-url">Web app URL</label><input id="m-url" type="url" value="${esc(MC.url||'')}" placeholder="https://script.google.com/macros/s/…/exec" required></div>
+    <div class="field"><label for="m-token">Secret phrase</label><input id="m-token" type="password" value="${esc(MC.token||'')}" autocomplete="off" required></div>
+    <div class="foot">${MC.url?`<button type="button" class="btn danger" data-act="money-disconnect">Disconnect</button>`:'<span></span>'}
+      <span style="display:flex;gap:8px"><button type="button" class="btn" data-act="close-sheet">Cancel</button><button class="btn primary" type="submit">Connect</button></span></div></form>`);
+  document.getElementById('m-url').focus()}
+function viewMoney(){const td=today();
+  if(!MC.url)return `<section>
+    <div class="empty-note solid">Your bank SMS already fills your Google Sheet. This tab reads that sheet and shows today, this week and this month. Cash is one tap.<br><br>
+    <b>One-time setup:</b> add <code>QuestDeck.gs</code> to the sheet's Apps Script and deploy a new version, then connect here with the same URL and secret phrase your Shortcut uses.</div>
+    <div><button class="btn primary" data-act="money-setup">Connect my sheet</button></div></section>`;
+  const head=`<div class="mhead"><span class="qnote">${M.busy?'Updating…':M.at?'Updated '+new Date(M.at).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}).toLowerCase():'From your expense sheet'}</span>
+    <span style="display:flex;gap:6px"><button class="btn sm" data-act="money-refresh" ${M.busy?'disabled':''}>Refresh</button><button class="btn sm" data-act="money-setup">Connection</button></span></div>`;
+  const err=M.err?`<div class="banner" role="alert">${esc(M.err)}</div>`:'';
+  if(!M.rows)return `<section>${head}${err||`<div class="empty-note">Reading your sheet…</div>`}</section>`;
+  const spend=M.rows.filter(r=>!NOSPEND.includes(r.category));const sum=f=>spend.filter(f).reduce((s,r)=>s+(+r.inr||0),0);
+  const ws=weekStart();const mo=td.slice(0,7);const dSum=sum(r=>r.date===td),wSum=sum(r=>r.date>=ws),mSum=sum(r=>r.date.slice(0,7)===mo);
+  const limit=+(S.meta.money?.weekLimit)||0;const left=limit-wSum;
+  const todo=moneyTodo();const one=todo[0];
+  const cats=(M.cats.length?M.cats:['Food','Transport','Shopping','Other']).filter(c=>c!=='Uncategorized'&&!NOSPEND.includes(c));
+  const byCat={};spend.filter(r=>r.date.slice(0,7)===mo).forEach(r=>byCat[r.category]=(byCat[r.category]||0)+(+r.inr||0));
+  const top=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,5);const max=Math.max(1,...top.map(x=>x[1]));
+  const when=r=>(r.date===td?'Today':r.date===addDays(td,-1)?'Yesterday':parseYmd(r.date).toLocaleDateString(undefined,{month:'short',day:'numeric'}))+(r.time?' · '+r.time:'');
+  return `<section>${head}${err}
+    <div class="mstats"><div class="mstat"><small>Today</small><b>${inr(dSum)}</b></div><div class="mstat"><small>This week</small><b>${inr(wSum)}</b></div><div class="mstat"><small>This month</small><b>${inr(mSum)}</b></div></div>
+    <div class="qcard">${limit?`<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap"><b class="mleft" style="color:${left<0?'var(--danger)':'inherit'}">${left<0?inr(-left)+' over this week':inr(left)+' left this week'}</b><span class="qnote">${inr(wSum)} of ${inr(limit)}</span></div>
+      <div class="mbar ${left<0?'over':''}"><i style="width:${Math.min(100,wSum/limit*100)}%"></i></div>`:`<div class="qnote"><b style="color:var(--ink)">Pick one weekly number.</b> Just what you are okay spending in a week.</div>`}
+      <form class="mlimit" data-form="limit"><input id="m-limit" type="number" min="0" step="100" inputmode="numeric" value="${limit||''}" placeholder="Weekly limit in ₹" aria-label="Weekly limit in rupees"><button class="btn" type="submit">${limit?'Change':'Set'}</button></form></div></section>
+   ${one?`<section><div class="sec-head"><h2>What was this?</h2><span class="sub">${todo.length>1?(todo.length-1)+' more':''}</span></div>
+     <div class="qcard"><div class="pay"><b>${inr(one.inr)}</b><span>${esc(one.merchant)}</span><span class="qnote">${when(one)} · ${esc(one.method)}</span></div>
+       <div class="seg">${cats.map(c=>`<button type="button" data-act="money-cat" data-row="${one.row}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}<button type="button" data-act="money-cat" data-row="${one.row}" data-cat="Ignored">Not a spend</button></div></div></section>`:''}
+   <section><div class="sec-head"><h2>Cash</h2></div>
+     <form class="qcard" data-form="cash" autocomplete="off"><div class="field"><label for="c-amt">Amount in ₹</label><input id="c-amt" type="number" min="1" step="1" inputmode="numeric" required></div>
+       <div class="field"><span class="lbl">Category</span>${segHtml('c-cat',cats[0],cats.map(c=>[c,esc(c)]))}</div>
+       <div><button class="btn primary" type="submit" id="c-go">Log cash</button></div></form></section>
+   ${top.length?`<section><div class="sec-head"><h2>Where it went this month</h2></div><div class="qcard"><div class="catbars">${top.map(([c,v])=>`<div class="catbar" style="grid-template-columns:104px minmax(0,1fr) 72px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c)}</span><div class="bar"><i style="width:${v/max*100}%;background:var(--accent)"></i></div><span class="mono" style="color:var(--muted);text-align:right">${inr(v)}</span></div>`).join('')}</div></div></section>`:''}
+   <section><div class="sec-head"><h2>Latest</h2></div>
+     ${M.rows.length?`<div class="list">${[...M.rows].sort(newest).slice(0,12).map(r=>`<div class="row" style="align-items:center"><div class="body"><span class="title" style="${NOSPEND.includes(r.category)?'color:var(--muted);text-decoration:line-through':''}">${esc(r.merchant)}</span><div class="meta"><span>${when(r)}</span><span>${esc(r.category)}</span><span>${esc(r.method)}</span></div></div><span class="amt">${inr(r.inr)}</span></div>`).join('')}</div>`:`<div class="empty-note">No payments in the last two months.</div>`}</section>`}
 
 /* ---------- chest reveal ---------- */
 let chestTimer=null;
@@ -1324,18 +1478,11 @@ function endSession(early){const sess=S.meta.session;if(!sess)return;let spent=S
   saveMeta({session:null,spent});
   if(early)toast(back>0?`Session ended. <b>${back} min</b> back in your bank.`:'Session ended.');
   else{tone([660,520],.2,.12);buzz([30,60,30]);toast(`<b>Time's up.</b> ${esc(sess.name)} is locked again. Go earn more.`)}}
-function openRewardsSheet(){const st=stats();const rs=rewardsList();const spent=(S.meta.spent||[]).slice(-3).reverse();const live=!!S.meta.session;
-  sheet(`<form class="sheet" data-form="reward" role="dialog" aria-label="Spend screen time">
-    <h2>Spend screen time</h2>
-    <div class="bankcard"><div class="bank">${bankHtml(st.tokens)}</div><div class="hint2">${live?'A session is running. End it from the Today screen.':st.tokens>0?'Pick something. The clock starts right away.':'Finish a task to earn your first minutes.'}</div></div>
-    <div class="rewards">${rs.map(r=>`<div class="reward"><span class="name">${esc(r.name)}</span><span class="cost">${r.cost} min</span>
-      <button type="button" class="btn sm primary" data-act="redeem" data-id="${r.id}" ${(st.tokens<r.cost||live)?'disabled':''}>Start</button>
-      <button type="button" class="ib" data-act="del-reward" data-id="${r.id}" aria-label="Remove ${esc(r.name)}">${'<svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>'}</button></div>`).join('')}</div>
-    <div class="grid2" style="grid-template-columns:minmax(0,1fr) 96px"><div class="field"><label for="r-name">New unlock</label><input id="r-name" placeholder="e.g. Instagram"></div><div class="field"><label for="r-cost">Minutes</label><input id="r-cost" type="number" min="1" value="20"></div></div>
-    <div class="foot"><span style="display:flex;gap:4px"><button type="button" class="btn ghost" data-act="sound">${soundOn?'Sounds on':'Sounds off'}</button><button type="button" class="btn ghost" data-act="hints-toggle">${S.meta.hintsOff?'Hints off':'Hints on'}</button></span>
-      <span style="display:flex;gap:8px"><button type="button" class="btn" data-act="close-sheet">Done</button><button class="btn primary" type="submit">Add</button></span></div>
-    ${spent.length?`<div style="font-size:13px;color:var(--muted)">Recently: ${spent.map(x=>esc(x.name)+' · '+x.cost+' min').join(', ')}</div>`:''}
-  </form>`)}
+function openRewardsSheet(){sheet(`<div class="sheet" data-form="reward" role="dialog" aria-label="Settings">
+    <h2>Settings</h2>
+    <div class="rewards"><div class="reward"><span class="name">Sounds</span><button type="button" class="btn sm" data-act="sound">${soundOn?'On':'Off'}</button></div>
+      <div class="reward"><span class="name">Follow-up hints after a task</span><button type="button" class="btn sm" data-act="hints-toggle">${S.meta.hintsOff?'Off':'On'}</button></div></div>
+    <div class="foot"><span></span><button type="button" class="btn primary" data-act="close-sheet">Done</button></div></div>`)}
 
 /* ---------- coach (asks Claude, on the viewer's own account) ---------- */
 let coachCtl=null;
@@ -1374,7 +1521,7 @@ document.addEventListener('touchstart',e=>{swX=e.target.closest('#weekstrip,#tl-
 document.addEventListener('touchend',e=>{if(swX==null)return;const dx=e.changedTouches[0].clientX-swX;swX=null;if(Math.abs(dx)>50){S.calDay=addDays(S.calDay||today(),dx<0?7:-7);render()}},{passive:true});
 document.addEventListener('scroll',e=>{if(e.target&&e.target.id==='tl')S.tlTop=e.target.scrollTop},true);
 /* ---------- events ---------- */
-function setView(v){S.view=v;if(v!=='projects')S.openProject=null;try{history.replaceState(null,'','#'+v)}catch{}render();window.scrollTo({top:0})}
+function setView(v){S.view=v;if(v!=='projects')S.openProject=null;try{history.replaceState(null,'','#'+v)}catch{}render();window.scrollTo({top:0});if(v==='money')moneyLoad()}
 document.addEventListener('click',e=>{
   const vb=e.target.closest('[data-view]');if(vb&&!e.target.closest('.sheet')){setView(vb.dataset.view);return}
   const el=e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act,id=el.dataset.id;
@@ -1423,27 +1570,55 @@ document.addEventListener('click',e=>{
     else{const p=S.projects[id];const ts=tasks().filter(t=>t.projectId===id);ts.forEach(t=>deleteTask(t.id));deleteProject(id);S.openProject=null;toast(`Deleted ${esc(p.name)} and ${ts.length} tasks`)}
     closeSheet();return}
   if(a==='check'){const ws=weekStart();const cur=S.meta.checks?.week===ws?[...(S.meta.checks.done||[])]:[];cur[+id]=el.checked;saveMeta({checks:{week:ws,done:cur}});return}
-  if(a==='finish-review'){const ws=weekStart();if((S.meta.reviews||[]).some(d=>d>=ws))return;const b={at:new Date().toISOString(),tokens:15,ticket:false,why:'Weekly review'};
-    saveMeta({reviews:[...(S.meta.reviews||[]),today()],bonuses:[...(S.meta.bonuses||[]),b]});showChest('epic',b.tokens,b.ticket,'Weekly review done. You are ahead of next week.');burst(null,true);tone([523,659,784,1047],.14,.09);return}
+  if(a==='finish-review'){const ws=weekStart();if((S.meta.reviews||[]).some(d=>d>=ws))return;
+    saveMeta({reviews:[...(S.meta.reviews||[]),today()]});toast('<b>Weekly review done.</b> You are ahead of next week.');burst(null,true);tone([523,659,784,1047],.14,.09);return}
   if(a==='show-report'){S.showReport=true;render();setTimeout(()=>document.getElementById('report')?.scrollIntoView({behavior:'smooth'}),50);return}
   if(a==='hide-report'){S.showReport=false;render();return}
   if(a==='tomorrow'){pushTomorrow(id);return}
   if(a==='all-tomorrow'){dayReport().openPlanned.forEach(t=>pushTomorrow(t.id));toast('Moved to tomorrow. Plan fewer, finish more.');return}
   if(a==='drop'){const t=S.tasks[id];saveTask({...t,status:'someday',todayOn:null,mustWinOn:null});toast(`Moved "${esc(t.title)}" to Someday`,()=>saveTask(t));return}
   if(a==='coach'){runCoach();return}
+  if(a==='start2'){openStartSheet(id);return}
+  if(a==='frog'){const td=today();const t=S.tasks[id];const on=t.frogOn===td;tasks().filter(x=>x.frogOn===td&&x.id!==id).forEach(x=>saveTask({...x,frogOn:null}));saveTask({...t,frogOn:on?null:td});return}
+  if(a==='timer-stop'){setTimer(null);toast('Stopped. You still started, and that counts.');return}
+  if(a==='timer-more'){setTimer({...T,until:Date.now()+600000,mins:10,rang:false});return}
+  if(a==='timer-done'){setTimer(null);if(S.tasks[id]&&S.tasks[id].status!=='done')completeTask(id,e);return}
+  if(a==='phone-out'){const on=!(S.meta.nights?.[today()]?.phone);saveNight({phone:on});if(on)toast('Good. That one move protects tomorrow.');return}
+  if(a==='slept'){saveNight({hours:+id});return}
+  if(a==='bed-earlier'){const[h,m]=(S.meta.sleep?.bed||'01:00').split(':').map(Number);const x=(h*60+m-30+1440)%1440;const bed=pad(Math.floor(x/60))+':'+pad(x%60);saveMeta({sleep:{...(S.meta.sleep||{}),bed}});toast(`Lights out by <b>${bed}</b> this week.`);return}
+  if(a==='money-setup'){openMoneySheet();return}
+  if(a==='money-refresh'){moneyLoad(true);return}
+  if(a==='money-disconnect'){MC={};M.rows=null;M.cats=[];M.at=0;M.err='';try{localStorage.removeItem('qd-money');localStorage.removeItem('qd-money-cache')}catch{}closeSheet();render();return}
+  if(a==='money-cat'){const row=+el.dataset.row;const r=(M.rows||[]).find(x=>x.row===row);if(!r)return;const cat=el.dataset.cat;const since=addDays(today(),-2);
+    const same=M.rows.filter(x=>x===r||(cat!=='Ignored'&&x.merchant===r.merchant&&x.category==='Uncategorized'&&x.date>=since&&!/^(cash spend|unknown merchant)$/i.test(x.merchant)));
+    same.forEach(x=>x.category=cat);render();
+    moneyCall({qd:'categorize',row,merchant:r.merchant,category:cat,remember:cat!=='Ignored',since}).then(d=>{if(!d||d.ok!==true)throw 0;cacheMoney()})
+      .catch(()=>{same.forEach(x=>x.category='Uncategorized');render();toast('Could not save that category. Check your connection and try again.')});return}
   if(a==='close-day'){const r=dayReport();const td=today();if(S.meta.reports?.[td]?.closed)return;
-    const roll1=roll(r.plannedDone>=r.planned.length&&r.planned.length>0);const b={at:new Date().toISOString(),tokens:Math.max(5,roll1.tokens),ticket:false,why:'Day closed'};
-    saveMeta({reports:{...(S.meta.reports||{}),[td]:{planned:r.planned.length,done:r.done.length,closed:true}},bonuses:[...(S.meta.bonuses||[]),b]});
-    showChest(roll1.tier,b.tokens,false,'Shutdown complete. Rest well.');chestSound(roll1.tier,1);S.showReport=true;return}
-  if(a==='redeem'){startSession(id);return}
-  if(a==='end-session'){endSession(true);return}
-  if(a==='del-reward'){saveMeta({rewards:rewardsList().filter(x=>x.id!==id)});openRewardsSheet();return}
+    saveMeta({reports:{...(S.meta.reports||{}),[td]:{planned:r.planned.length,done:r.done.length,closed:true}}});
+    toast('<b>Day closed.</b> Phone out of the room, then rest well.');tone([523,659,784]);S.showReport=true;return}
 });
-document.addEventListener('change',e=>{if(e.target.id==='e-recur'){const w=document.getElementById('e-days-wrap');if(w)w.hidden=e.target.value!=='custom'}});
+document.addEventListener('change',e=>{if(e.target.id==='e-recur'){const w=document.getElementById('e-days-wrap');if(w)w.hidden=e.target.value!=='custom'}
+  if(e.target.dataset.step){const t=S.tasks[e.target.dataset.step];if(t&&(t.firstStep||'')!==e.target.value.trim())saveTask({...t,firstStep:e.target.value.trim()})}
+  if(e.target.id==='bed'&&e.target.value)saveMeta({sleep:{...(S.meta.sleep||{}),bed:e.target.value}})});
 document.addEventListener('submit',e=>{e.preventDefault();const f=e.target;
   if(f.id==='qa'){const inp=document.getElementById('qa-input');const v=inp.value.trim();if(!v)return;
     const extra=S.view==='projects'&&S.openProject?{projectId:S.openProject}:{};const t=addFromText(v,extra);inp.value='';updatePreview();
     if(t){toast(t.status==='inbox'?`Captured to Inbox: ${esc(t.title)}`:`Added: ${esc(t.title)}${t.recur?' · '+esc(recurLabel(t)):t.due?' · '+fmtDate(t.due):''}${t.at?' · '+fmtTime(t.at):''}`);warnOverlap(t)}return}
+  if(f.dataset.form==='park'){const inp=document.getElementById('park-input');const v=inp.value.trim();if(!v)return;inp.value='';
+    saveTask({id:'t_'+uid(),title:v,status:'inbox',priority:3,size:'M',createdAt:new Date().toISOString()});toast('Parked. It is safe in the Inbox.');return}
+  if(f.dataset.form==='start'){const t=S.tasks[f.dataset.id];if(!t)return;const feel=document.getElementById('s-feel').dataset.v||null;const step=document.getElementById('s-step').value.trim();
+    saveTask({...t,firstStep:step,starts:(t.starts||0)+1,feels:[...(t.feels||[]).slice(-19),{at:new Date().toISOString(),f:feel}]});
+    closeSheet();tone([440,660]);setTimer({id:t.id,until:Date.now()+120000,mins:2,feel});S.view='focus';render();window.scrollTo({top:0});return}
+  if(f.dataset.form==='limit'){const n=Math.max(0,+document.getElementById('m-limit').value||0);saveMeta({money:{...(S.meta.money||{}),weekLimit:n}});toast(n?`Weekly limit set to <b>${inr(n)}</b>`:'Weekly limit removed');return}
+  if(f.dataset.form==='money-setup'){const url=document.getElementById('m-url').value.trim();const token=document.getElementById('m-token').value;
+    if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)){toast('That is not an Apps Script Web app URL. It starts with https://script.google.com/macros/s/ and ends with /exec.');return}
+    MC={url,token};try{localStorage.setItem('qd-money',JSON.stringify(MC))}catch{}M.rows=null;M.at=0;closeSheet();moneyLoad(true);return}
+  if(f.dataset.form==='cash'){const amount=Math.round(+document.getElementById('c-amt').value);const category=document.getElementById('c-cat').dataset.v;if(!(amount>0))return;
+    const go=document.getElementById('c-go');go.disabled=true;go.textContent='Logging…';
+    fetch(MC.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({token:MC.token,amount,category,method:'Cash',merchant:'Cash spend',source:'Quest Deck'})})
+      .then(r=>{if(!r.ok)throw 0;toast(`Logged <b>${inr(amount)}</b> cash · ${esc(category)}`);return moneyLoad(true)})
+      .catch(()=>{toast('Could not log that cash. Check your connection and try again.');render()});return}
   if(f.dataset.form==='proj-add'){const inp=f.querySelector('input');const v=inp.value.trim();if(!v)return;addFromText(v,{projectId:f.dataset.id});inp.value='';return}
   if(f.dataset.form==='task'){const id=f.dataset.id;const t=id?S.tasks[id]:{id:'t_'+uid(),createdAt:new Date().toISOString()};const g=k=>document.getElementById(k).value;
     const status=g('e-status');const recur=g('e-recur')||null;
@@ -1510,7 +1685,8 @@ function sampleData(){const td=today();const iso=new Date().toISOString();
   tasks.t_exr={id:'t_exr',title:'Example: Gym',cat:'Personal',priority:3,size:'M',status:'next',recur:'custom',recurDays:[1,3,5],due:td,createdAt:iso};
   return{projects,tasks,meta:{}}}
 
-async function boot(){render();
+async function boot(){render();if(S.view==='money')moneyLoad();
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&S.view==='money')moneyLoad()});
   let db=null;try{db=window.claude&&window.claude.use?await window.claude.use('db'):null}catch{db=null}
   if(!db){const d=local.load()||sampleData();S.projects=d.projects||{};S.tasks=d.tasks||{};S.meta=d.meta||{};S.mode='local';render();return}
   S.db=db;const got={p:false,t:false};
