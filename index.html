@@ -476,14 +476,42 @@ canvas.fx{position:fixed;inset:0;pointer-events:none;z-index:70;width:100%;heigh
 
 /* ---------- focus + money ---------- */
 @media (max-width:899px){nav.tabs{padding-left:max(3px,env(safe-area-inset-left,0px));padding-right:max(3px,env(safe-area-inset-right,0px))}nav.tabs button{font-size:9px;letter-spacing:0;min-width:0}nav.tabs button .ico{width:23px;height:23px}}
-.timer{background:var(--accent);color:#fff;border-radius:20px;padding:22px 18px;gap:8px;text-align:center;justify-items:center}
-.timer .eyebrow{color:rgba(255,255,255,.82)}
-.timer .of{color:rgba(255,255,255,.85);font-size:14px}
-.timer .t{font:700 64px/1 var(--f-round);letter-spacing:-.03em}
-.timer .now{font:700 21px/1.25 var(--f-display);overflow-wrap:anywhere}
+.timer{background:linear-gradient(140deg,var(--pink),var(--orange));color:#fff;border-radius:24px;padding:24px 18px;gap:8px;text-align:center;justify-items:center;position:relative;overflow:hidden;box-shadow:0 14px 34px color-mix(in srgb,var(--pink) 32%,transparent)}
+.timer.over{background:linear-gradient(140deg,var(--green),var(--teal));box-shadow:0 14px 34px color-mix(in srgb,var(--green) 32%,transparent)}
+.timer::after{content:"";position:absolute;inset:-30%;background:radial-gradient(circle,rgba(255,255,255,.26),transparent 58%);animation:breathe 4s ease-in-out infinite;pointer-events:none}
+.timer>*{position:relative;z-index:1}
+@keyframes breathe{0%,100%{transform:scale(.75);opacity:.45}50%{transform:scale(1.1);opacity:1}}
+.timer .eyebrow{color:rgba(255,255,255,.9)}
+.timer .of{color:rgba(255,255,255,.9);font-size:14px}
+.tring{position:relative;width:196px;height:196px;margin:4px 0}
+.tring svg{width:196px;height:196px;transform:rotate(-90deg);overflow:visible}
+.tring circle{fill:none;stroke-width:10}
+.tring .trk{stroke:rgba(255,255,255,.28)}
+.tring .val{stroke:#fff;stroke-linecap:round;transition:stroke-dashoffset .5s linear;filter:drop-shadow(0 0 8px rgba(255,255,255,.75))}
+.tring .t{position:absolute;inset:0;display:grid;place-items:center}
+.timer .t{font:700 60px/1 var(--f-round);letter-spacing:-.03em}
+.timer .big{width:84px;height:84px;border-radius:50%;background:#fff;color:var(--ok);display:grid;place-items:center;animation:chest .55s var(--spring)}
+.timer .big .ico{width:44px;height:44px;stroke-width:3}
+.timer .now{font:700 22px/1.25 var(--f-display);overflow-wrap:anywhere}
 .timer .tbtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px}
-.timer .btn{background:#fff;color:#0062cc}
-.timer .btn.ghost{background:none;color:#fff}
+.timer .btn{background:#fff;color:#b3003b}
+.timer.over .btn{color:#14693a}
+.timer .btn.ghost,.timer.over .btn.ghost{background:rgba(255,255,255,.2);color:#fff;padding:11px 16px}
+.go{background:linear-gradient(135deg,var(--pink),var(--orange))!important;color:#fff!important;box-shadow:0 6px 18px color-mix(in srgb,var(--pink) 38%,transparent);padding:13px 20px;font-size:17px}
+.fcard.frog .go{animation:nudge 2.6s ease-in-out infinite}
+@keyframes nudge{0%,72%,100%{transform:scale(1)}80%{transform:scale(1.06)}88%{transform:scale(.99)}}
+.fcard.frog{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--orange) 60%,transparent),0 10px 26px color-mix(in srgb,var(--orange) 20%,transparent)}
+.sparks{display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:var(--r);padding:12px 16px}
+.sparks .bolts{display:flex;gap:4px}
+.sparks .bolts span{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--sunk);color:var(--faint)}
+.sparks .bolts span.on{background:linear-gradient(135deg,var(--pink),var(--orange));color:#fff;box-shadow:0 3px 10px color-mix(in srgb,var(--pink) 35%,transparent);animation:chest .5s var(--spring) both}
+.sparks .bolts .ico{width:16px;height:16px}
+.sparks .bolts span.on .ico{fill:currentColor}
+.sparks .txt{font-size:15px;color:var(--muted);line-height:1.25;min-width:0}
+.sparks .txt b{display:block;color:var(--ink);font:700 17px var(--f-display)}
+#view.enter>*{animation:enter .5s var(--spring) both}
+#view.enter>*:nth-child(2){animation-delay:.05s}#view.enter>*:nth-child(3){animation-delay:.1s}#view.enter>*:nth-child(4){animation-delay:.15s}#view.enter>*:nth-child(n+5){animation-delay:.2s}
+@keyframes enter{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
 .fwins{display:grid;gap:10px}
 .fcard{background:var(--surface);border-radius:var(--r);padding:12px 14px 14px 16px;display:grid;gap:10px;position:relative;overflow:hidden}
 .fcard::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:4px;border-radius:0 4px 4px 0;background:var(--line)}
@@ -515,17 +543,19 @@ canvas.fx{position:fixed;inset:0;pointer-events:none;z-index:70;width:100%;heigh
 .mstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .mstat{background:var(--surface);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px;min-width:0}
 .mstat b{font:700 21px var(--f-round);letter-spacing:-.02em;overflow-wrap:anywhere}
+.mstat:first-child{background:linear-gradient(140deg,var(--blue),var(--purple));color:#fff}
+.mstat:first-child small{color:rgba(255,255,255,.88)}
 .mstat small{font-size:13px;color:var(--muted)}
 .mleft{font:700 20px var(--f-display);letter-spacing:-.02em}
 .mbar{height:8px;background:var(--sunk);border-radius:99px;overflow:hidden}
-.mbar i{display:block;height:100%;border-radius:99px;background:var(--green)}
-.mbar.over i{background:var(--danger)}
+.mbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--green),var(--teal));transition:width .8s var(--spring)}
+.mbar.over i{background:linear-gradient(90deg,var(--orange),var(--pink))}
 .mlimit{display:flex;gap:8px}
 .mlimit input{flex:1;min-width:0;border:0;background:var(--sunk);border-radius:10px;padding:11px 13px;font-size:17px;outline:none}
 .mhead{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:0 4px}
 .amt{font:600 16px var(--f-round);flex:none;margin-left:auto;white-space:nowrap;align-self:center}
 .pay{display:grid;gap:2px}
-.pay b{font:700 36px/1.1 var(--f-round);letter-spacing:-.03em}
+.pay b{font:700 40px/1.1 var(--f-round);letter-spacing:-.03em;background:linear-gradient(135deg,var(--pink),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 #coach-btn{display:none}
 </style>
@@ -1315,15 +1345,18 @@ let T=null;try{T=JSON.parse(localStorage.getItem('qd-timer')||'null');if(T&&Date
 function setTimer(t){T=t;try{if(t)localStorage.setItem('qd-timer',JSON.stringify(t));else localStorage.removeItem('qd-timer')}catch{}render()}
 const fmtLeft=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+pad(s%60)};
 function tickTimer(){if(!T)return;const ms=T.until-Date.now();
-  if(ms<=0&&!T.rang){tone([659,784,1047],.16,.1);buzz([60,60,120]);setTimer({...T,rang:true});return}
-  const el=document.getElementById('tm-left');if(el&&ms>0)el.textContent=fmtLeft(ms)}
+  if(ms<=0&&!T.rang){tone([659,784,1047,1319],.16,.1);buzz([60,60,120]);burst(null,true);setTimer({...T,rang:true});return}
+  const el=document.getElementById('tm-left');if(el&&ms>0)el.textContent=fmtLeft(ms);
+  const rg=document.getElementById('tm-ring');if(rg&&ms>0)rg.style.strokeDashoffset=TC*(1-ms/(T.mins*60000))}
 setInterval(tickTimer,500);
-function timerHtml(){const t=T&&S.tasks[T.id];if(!t)return '';const ms=T.until-Date.now();const feel=FEELS.find(f=>f[0]===T.feel);
-  if(ms>0)return `<section class="timer" id="timer"><div class="eyebrow">${T.mins} minutes · only this</div><div class="t" id="tm-left" role="timer">${fmtLeft(ms)}</div>
+const TR=88,TC=2*Math.PI*TR;
+function timerHtml(){const t=T&&S.tasks[T.id];if(!t)return '';const ms=T.until-Date.now();const feel=FEELS.find(f=>f[0]===T.feel);const total=T.mins*60000;
+  if(ms>0)return `<section class="timer" id="timer"><div class="eyebrow">${T.mins} minutes · only this</div>
+    <div class="tring"><svg viewBox="0 0 196 196"><circle class="trk" cx="98" cy="98" r="${TR}"/><circle class="val" id="tm-ring" cx="98" cy="98" r="${TR}" stroke-dasharray="${TC}" stroke-dashoffset="${TC*(1-ms/total)}"/></svg><div class="t" id="tm-left" role="timer">${fmtLeft(ms)}</div></div>
     <div class="now">${esc(t.firstStep||t.title)}</div>${t.firstStep?`<div class="of">${esc(t.title)}</div>`:''}${feel?`<div class="of">${feel[2]}</div>`:''}
     <div class="tbtns"><button class="btn" data-act="timer-done" data-id="${t.id}">I finished the task</button><button class="btn ghost" data-act="timer-stop">Stop</button></div></section>`;
-  return `<section class="timer" id="timer"><div class="eyebrow">Time is up</div><div class="now">You started. That was the hard part.</div><div class="of">${esc(t.title)}</div>
-    <div class="tbtns"><button class="btn primary" data-act="timer-more">Keep going · 10 more</button><button class="btn" data-act="timer-done" data-id="${t.id}">I finished it</button><button class="btn ghost" data-act="timer-stop">Stop here</button></div></section>`}
+  return `<section class="timer over" id="timer"><div class="big">${ICON.check}</div><div class="now">You started. That was the hard part.</div><div class="of">${esc(t.title)}</div>
+    <div class="tbtns"><button class="btn" data-act="timer-more">Keep going · 10 more</button><button class="btn" data-act="timer-done" data-id="${t.id}">I finished it</button><button class="btn ghost" data-act="timer-stop">Stop here</button></div></section>`}
 
 function openStartSheet(id){const t=S.tasks[id];if(!t)return;
   sheet(`<form class="sheet" data-form="start" data-id="${id}" role="dialog" aria-label="Start 2 minutes">
@@ -1357,12 +1390,14 @@ function viewFocus(){const td=today();
       <div class="fhead"><span class="slot">${frog?'THE FROG · DO THIS FIRST':'MUST-WIN'}</span>${done?'':`<button class="btn sm ghost" data-act="frog" data-id="${t.id}">${frog?'Not the frog':'Make it the frog'}</button>`}</div>
       ${taskRow(t,{today:false,bare:true})}
       ${done?'':`<div class="field"><label for="fs-${t.id}">Tiny first step (so small it feels silly)</label><input id="fs-${t.id}" data-step="${t.id}" value="${esc(t.firstStep||'')}" placeholder="e.g. Open the doc and type the title"></div>
-      <div class="fbtns"><button class="btn primary" data-act="start2" data-id="${t.id}">${ICON.play}Start 2 minutes</button>${t.starts?`<span class="sub">Started ${t.starts}×</span>`:''}</div>`}
+      <div class="fbtns"><button class="btn primary go" data-act="start2" data-id="${t.id}">${ICON.play}Start 2 minutes</button>${t.starts?`<span class="sub">Started ${t.starts}×</span>`:''}</div>`}
     </div>`}).join('');
   const pool=openTasks().filter(t=>t.mustWinOn!==td&&(t.status==='next'||t.status==='inbox'))
     .sort((a,b)=>(b.carried||0)-(a.carried||0)||(a.priority||3)-(b.priority||3)||((a.due||'9999')<(b.due||'9999')?-1:(a.due||'9999')>(b.due||'9999')?1:0)).slice(0,6);
   const room=3-wins.length;
-  return `${timerHtml()}
+  const startsToday=tasks().reduce((n,t)=>n+(t.feels||[]).filter(f=>isoDay(f.at)===td).length,0);
+  const sparks=`<div class="sparks"><div class="bolts">${[0,1,2,3,4].map(i=>`<span class="${i<startsToday?'on':''}">${ICON.bolt}</span>`).join('')}</div><div class="txt"><b>${startsToday?startsToday+(startsToday===1?' start today':' starts today'):'No starts yet'}</b>${startsToday>=5?'You keep showing up.':startsToday?'Every start counts, finished or not.':'One tap on Start lights the first one.'}</div></div>`;
+  return `${timerHtml()}${sparks}
    <section><div class="sec-head"><h2>Today's 3</h2><span class="sub">3 at most</span></div>
      ${wins.length?`<div class="fwins">${cards}</div>`:`<div class="empty-note">Nothing picked yet. Choose up to three below. Start with the one you have been avoiding.</div>`}</section>
    ${room>0&&pool.length?`<section><div class="sec-head"><h2>Pick ${wins.length?room+' more':'your three'}</h2></div>
@@ -1540,7 +1575,7 @@ document.addEventListener('touchstart',e=>{swX=e.target.closest('#weekstrip,#tl-
 document.addEventListener('touchend',e=>{if(swX==null)return;const dx=e.changedTouches[0].clientX-swX;swX=null;if(Math.abs(dx)>50){S.calDay=addDays(S.calDay||today(),dx<0?7:-7);render()}},{passive:true});
 document.addEventListener('scroll',e=>{if(e.target&&e.target.id==='tl')S.tlTop=e.target.scrollTop},true);
 /* ---------- events ---------- */
-function setView(v){S.view=v;if(v!=='projects')S.openProject=null;try{history.replaceState(null,'','#'+v)}catch{}render();window.scrollTo({top:0});if(v==='money')moneyLoad()}
+function setView(v){if(v!==S.view){const el=document.getElementById('view');el.classList.add('enter');setTimeout(()=>el.classList.remove('enter'),800)}S.view=v;if(v!=='projects')S.openProject=null;try{history.replaceState(null,'','#'+v)}catch{}render();window.scrollTo({top:0});if(v==='money')moneyLoad()}
 document.addEventListener('click',e=>{
   const vb=e.target.closest('[data-view]');if(vb&&!e.target.closest('.sheet')){setView(vb.dataset.view);return}
   const el=e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act,id=el.dataset.id;
@@ -1628,7 +1663,7 @@ document.addEventListener('submit',e=>{e.preventDefault();const f=e.target;
     saveTask({id:'t_'+uid(),title:v,status:'inbox',priority:3,size:'M',createdAt:new Date().toISOString()});toast('Parked. It is safe in the Inbox.');return}
   if(f.dataset.form==='start'){const t=S.tasks[f.dataset.id];if(!t)return;const feel=document.getElementById('s-feel').dataset.v||null;const step=document.getElementById('s-step').value.trim();
     saveTask({...t,firstStep:step,starts:(t.starts||0)+1,feels:[...(t.feels||[]).slice(-19),{at:new Date().toISOString(),f:feel}]});
-    closeSheet();tone([440,660]);setTimer({id:t.id,until:Date.now()+120000,mins:2,feel});S.view='focus';render();window.scrollTo({top:0});return}
+    closeSheet();tone([440,554,660,880],.1,.07);buzz(20);burst(null,false);setTimer({id:t.id,until:Date.now()+120000,mins:2,feel});S.view='focus';render();window.scrollTo({top:0});return}
   if(f.dataset.form==='limit'){const n=Math.max(0,+document.getElementById('m-limit').value||0);saveMeta({money:{...(S.meta.money||{}),weekLimit:n}});toast(n?`Weekly limit set to <b>${inr(n)}</b>`:'Weekly limit removed');return}
   if(f.dataset.form==='money-setup'){const url=document.getElementById('m-url').value.trim();const token=document.getElementById('m-token').value;
     if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)){toast('That is not an Apps Script Web app URL. It starts with https://script.google.com/macros/s/ and ends with /exec.');return}
