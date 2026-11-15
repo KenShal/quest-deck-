@@ -552,6 +552,11 @@ canvas.fx{position:fixed;inset:0;pointer-events:none;z-index:70;width:100%;heigh
 .mbar.over i{background:linear-gradient(90deg,var(--orange),var(--pink))}
 .mlimit{display:flex;gap:8px}
 .mlimit input{flex:1;min-width:0;border:0;background:var(--sunk);border-radius:10px;padding:11px 13px;font-size:17px;outline:none}
+.brow{display:grid;gap:6px}
+.btop{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.btop b{font:700 19px var(--f-display);letter-spacing:-.02em}
+.row.tap{width:100%;border:0;background:none;text-align:left;cursor:pointer}
+.row.tap .title{font-weight:500;overflow-wrap:anywhere}
 .mhead{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:0 4px}
 .amt{font:600 16px var(--f-round);flex:none;margin-left:auto;white-space:nowrap;align-self:center}
 .pay{display:grid;gap:2px}
@@ -1443,7 +1448,8 @@ function viewMoney(){const td=today();
   if(!M.rows)return `<section>${head}${err||`<div class="empty-note">Reading your sheet…</div>`}</section>`;
   const spend=M.rows.filter(r=>!NOSPEND.includes(r.category));const sum=f=>spend.filter(f).reduce((s,r)=>s+(+r.inr||0),0);
   const ws=weekStart();const mo=td.slice(0,7);const dSum=sum(r=>r.date===td),wSum=sum(r=>r.date>=ws),mSum=sum(r=>r.date.slice(0,7)===mo);
-  const limit=+(S.meta.money?.weekLimit)||0;const left=limit-wSum;
+  const mm=S.meta.money||{};const notes=mm.notes||{};
+  const buds=[['Today',dSum,+mm.dayLimit||0],['This week',wSum,+mm.weekLimit||0],['This month',mSum,+mm.monthLimit||0]].filter(b=>b[2]>0);
   const todo=moneyTodo();const one=todo[0];
   const cats=(M.cats.length?M.cats:['Food','Transport','Shopping','Other']).filter(c=>c!=='Uncategorized'&&!NOSPEND.includes(c));
   const byCat={};spend.filter(r=>r.date.slice(0,7)===mo).forEach(r=>byCat[r.category]=(byCat[r.category]||0)+(+r.inr||0));
@@ -1451,19 +1457,40 @@ function viewMoney(){const td=today();
   const when=r=>(r.date===td?'Today':r.date===addDays(td,-1)?'Yesterday':parseYmd(r.date).toLocaleDateString(undefined,{month:'short',day:'numeric'}))+(r.time?' · '+r.time:'');
   return `<section>${head}${err}
     <div class="mstats"><div class="mstat"><small>Today</small><b>${inr(dSum)}</b></div><div class="mstat"><small>This week</small><b>${inr(wSum)}</b></div><div class="mstat"><small>This month</small><b>${inr(mSum)}</b></div></div>
-    <div class="qcard">${limit?`<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap"><b class="mleft" style="color:${left<0?'var(--danger)':'inherit'}">${left<0?inr(-left)+' over this week':inr(left)+' left this week'}</b><span class="qnote">${inr(wSum)} of ${inr(limit)}</span></div>
-      <div class="mbar ${left<0?'over':''}"><i style="width:${Math.min(100,wSum/limit*100)}%"></i></div>`:`<div class="qnote"><b style="color:var(--ink)">Pick one weekly number.</b> Just what you are okay spending in a week.</div>`}
-      <form class="mlimit" data-form="limit"><input id="m-limit" type="number" min="0" step="100" inputmode="numeric" value="${limit||''}" placeholder="Weekly limit in ₹" aria-label="Weekly limit in rupees"><button class="btn" type="submit">${limit?'Change':'Set'}</button></form></div></section>
+    </section>
+   <section><div class="sec-head"><h2>Budget</h2><button class="btn sm" data-act="money-budgets">${buds.length?'Edit':'Set budgets'}</button></div>
+    <div class="qcard">${buds.length?buds.map(([l,spent,lim])=>{const left=lim-spent;return `<div class="brow"><div class="btop"><b style="color:${left<0?'var(--danger)':'inherit'}">${left<0?inr(-left)+' over':inr(left)+' left'}</b><span class="qnote">${l} · ${inr(spent)} of ${inr(lim)}</span></div>
+      <div class="mbar ${left<0?'over':''}"><i style="width:${Math.min(100,spent/lim*100)}%"></i></div></div>`}).join(''):`<div class="qnote"><b style="color:var(--ink)">No budget yet.</b> Set a daily, weekly or monthly number, or all three. Each one shows what is left.</div>`}</div></section>
    ${one?`<section><div class="sec-head"><h2>What was this?</h2><span class="sub">${todo.length>1?(todo.length-1)+' more':''}</span></div>
-     <div class="qcard"><div class="pay"><b>${inr(one.inr)}</b><span>${esc(one.merchant)}</span><span class="qnote">${when(one)} · ${esc(one.method)}</span></div>
+     <div class="qcard"><div class="pay"><b>${inr(one.inr)}</b><span>${esc(notes[payKey(one)]||one.merchant)}</span><span class="qnote">${when(one)} · ${esc(one.method)}${notes[payKey(one)]?' · '+esc(one.merchant):''}</span></div>
+       <div><button type="button" class="btn sm" data-act="pay-edit" data-row="${one.row}">${notes[payKey(one)]?'Edit note':'Add a note: what was it for?'}</button></div>
        <div class="seg">${cats.map(c=>`<button type="button" data-act="money-cat" data-row="${one.row}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}<button type="button" data-act="money-cat" data-row="${one.row}" data-cat="Ignored">Not a spend</button></div></div></section>`:''}
    <section><div class="sec-head"><h2>Cash</h2></div>
      <form class="qcard" data-form="cash" autocomplete="off"><div class="field"><label for="c-amt">Amount in ₹</label><input id="c-amt" type="number" min="1" step="1" inputmode="numeric" required></div>
        <div class="field"><span class="lbl">Category</span>${segHtml('c-cat',cats[0],cats.map(c=>[c,esc(c)]))}</div>
        <div><button class="btn primary" type="submit" id="c-go">Log cash</button></div></form></section>
    ${top.length?`<section><div class="sec-head"><h2>Where it went this month</h2></div><div class="qcard"><div class="catbars">${top.map(([c,v])=>`<div class="catbar" style="grid-template-columns:104px minmax(0,1fr) 72px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c)}</span><div class="bar"><i style="width:${v/max*100}%;background:var(--accent)"></i></div><span class="mono" style="color:var(--muted);text-align:right">${inr(v)}</span></div>`).join('')}</div></div></section>`:''}
-   <section><div class="sec-head"><h2>Latest</h2></div>
-     ${M.rows.length?`<div class="list">${[...M.rows].sort(newest).slice(0,12).map(r=>`<div class="row" style="align-items:center"><div class="body"><span class="title" style="${NOSPEND.includes(r.category)?'color:var(--muted);text-decoration:line-through':''}">${esc(r.merchant)}</span><div class="meta"><span>${when(r)}</span><span>${esc(r.category)}</span><span>${esc(r.method)}</span></div></div><span class="amt">${inr(r.inr)}</span></div>`).join('')}</div>`:`<div class="empty-note">No payments in the last two months.</div>`}</section>`}
+   <section><div class="sec-head"><h2>Payments</h2><span class="sub">Tap one to fix it</span></div>
+     ${M.rows.length?`<div class="list">${[...M.rows].sort(newest).slice(0,M.more?200:15).map(r=>{const n=notes[payKey(r)];return `<button type="button" class="row tap" data-act="pay-edit" data-row="${r.row}" style="align-items:center"><div class="body"><span class="title" style="${NOSPEND.includes(r.category)?'color:var(--muted);text-decoration:line-through':''}">${esc(n||r.merchant)}</span><div class="meta"><span>${when(r)}</span><span class="${r.category==='Uncategorized'?'late':''}">${esc(r.category==='Ignored'?'Not a spend':r.category)}</span>${n?`<span>${esc(r.merchant)}</span>`:`<span>${esc(r.method)}</span>`}</div></div><span class="amt">${inr(r.inr)}</span></button>`}).join('')}</div>
+     ${M.rows.length>15?`<div><button class="btn ghost" data-act="money-more">${M.more?'Show fewer':'Show all '+M.rows.length}</button></div>`:''}`:`<div class="empty-note">No payments in the last two months.</div>`}</section>`}
+const payKey=r=>[r.date,r.time||'',Math.round((+r.inr||0)*100),r.merchant].join('|');
+function openPaySheet(row){const r=(M.rows||[]).find(x=>x.row===row);if(!r)return;const note=(S.meta.money?.notes||{})[payKey(r)]||'';
+  const cats=(M.cats.length?M.cats:['Food','Transport','Shopping','Other']).filter(c=>c!=='Uncategorized'&&!NOSPEND.includes(c));
+  sheet(`<form class="sheet" data-form="pay" data-row="${row}" role="dialog" aria-label="Edit payment" autocomplete="off">
+    <h2>${inr(r.inr)}</h2>
+    <div style="color:var(--muted);font-size:15px;margin-top:-6px">${esc(r.merchant)} · ${fmtDate(r.date)}${r.time?' · '+esc(r.time):''} · ${esc(r.method)}</div>
+    <div class="field"><label for="p-note">What was it actually for?</label><input id="p-note" value="${esc(note)}" maxlength="80" placeholder="e.g. Auto to church, lunch with Sam"></div>
+    <div class="field"><span class="lbl">Category</span>${segHtml('p-cat',r.category,[...cats.map(c=>[c,esc(c)]),['Ignored','Not a spend']])}</div>
+    <div class="foot"><button type="button" class="btn ghost" data-act="close-sheet">Cancel</button><button class="btn primary" type="submit">Save</button></div></form>`);
+  document.getElementById('p-note').focus()}
+function openBudgetSheet(){const mm=S.meta.money||{};
+  const f=(id,l,v,ph)=>`<div class="field"><label for="${id}">${l}</label><input id="${id}" type="number" min="0" step="50" inputmode="numeric" value="${+v||''}" placeholder="${ph}"></div>`;
+  sheet(`<form class="sheet" data-form="budgets" role="dialog" aria-label="Budgets" autocomplete="off">
+    <h2>Budgets</h2>
+    <div style="color:var(--muted);font-size:15px;margin-top:-6px">Amounts in ₹. Leave one empty to switch it off.</div>
+    ${f('b-day','Daily budget',mm.dayLimit,'e.g. 500')}${f('b-week','Weekly budget',mm.weekLimit,'e.g. 3500')}${f('b-month','Monthly budget',mm.monthLimit,'e.g. 15000')}
+    <div class="foot"><button type="button" class="btn ghost" data-act="close-sheet">Cancel</button><button class="btn primary" type="submit">Save</button></div></form>`);
+  document.getElementById('b-day').focus()}
 
 /* ---------- chest reveal ---------- */
 let chestTimer=null;
@@ -1641,6 +1668,9 @@ document.addEventListener('click',e=>{
   if(a==='slept'){saveNight({hours:+id});return}
   if(a==='bed-earlier'){const[h,m]=(S.meta.sleep?.bed||'01:00').split(':').map(Number);const x=(h*60+m-30+1440)%1440;const bed=pad(Math.floor(x/60))+':'+pad(x%60);saveMeta({sleep:{...(S.meta.sleep||{}),bed}});toast(`Lights out by <b>${bed}</b> this week.`);return}
   if(a==='money-setup'){openMoneySheet();return}
+  if(a==='pay-edit'){openPaySheet(+el.dataset.row);return}
+  if(a==='money-budgets'){openBudgetSheet();return}
+  if(a==='money-more'){M.more=!M.more;render();return}
   if(a==='money-refresh'){moneyLoad(true);return}
   if(a==='money-disconnect'){MC={};M.rows=null;M.cats=[];M.at=0;M.err='';try{localStorage.removeItem('qd-money');localStorage.removeItem('qd-money-cache')}catch{}closeSheet();render();return}
   if(a==='money-cat'){const row=+el.dataset.row;const r=(M.rows||[]).find(x=>x.row===row);if(!r)return;const cat=el.dataset.cat;const since=addDays(today(),-2);
@@ -1664,7 +1694,18 @@ document.addEventListener('submit',e=>{e.preventDefault();const f=e.target;
   if(f.dataset.form==='start'){const t=S.tasks[f.dataset.id];if(!t)return;const feel=document.getElementById('s-feel').dataset.v||null;const step=document.getElementById('s-step').value.trim();
     saveTask({...t,firstStep:step,starts:(t.starts||0)+1,feels:[...(t.feels||[]).slice(-19),{at:new Date().toISOString(),f:feel}]});
     closeSheet();tone([440,554,660,880],.1,.07);buzz(20);burst(null,false);setTimer({id:t.id,until:Date.now()+120000,mins:2,feel});S.view='focus';render();window.scrollTo({top:0});return}
-  if(f.dataset.form==='limit'){const n=Math.max(0,+document.getElementById('m-limit').value||0);saveMeta({money:{...(S.meta.money||{}),weekLimit:n}});toast(n?`Weekly limit set to <b>${inr(n)}</b>`:'Weekly limit removed');return}
+  if(f.dataset.form==='budgets'){const g=id=>Math.max(0,Math.round(+document.getElementById(id).value||0));
+    saveMeta({money:{...(S.meta.money||{}),dayLimit:g('b-day'),weekLimit:g('b-week'),monthLimit:g('b-month')}});closeSheet();toast('Budgets saved');return}
+  if(f.dataset.form==='pay'){const row=+f.dataset.row;const r=(M.rows||[]).find(x=>x.row===row);if(!r)return;
+    const note=document.getElementById('p-note').value.trim();const cat=document.getElementById('p-cat').dataset.v||r.category;
+    const k=payKey(r);const old=(S.meta.money?.notes||{})[k]||'';
+    if(note!==old){const all={...(S.meta.money?.notes||{})};if(note)all[k]=note;else delete all[k];
+      const keep={};Object.keys(all).sort().slice(-600).forEach(x=>keep[x]=all[x]);saveMeta({money:{...(S.meta.money||{}),notes:keep}})}
+    closeSheet();
+    if(cat!==r.category){const prev=r.category;r.category=cat;render();
+      moneyCall({qd:'categorize',row,merchant:r.merchant,category:cat,remember:false}).then(d=>{if(!d||d.ok!==true)throw 0;cacheMoney();toast(`Saved as <b>${esc(cat==='Ignored'?'Not a spend':cat)}</b>`)})
+        .catch(()=>{r.category=prev;render();toast('The note is saved, but the category could not be saved. Check your connection and try again.')})}
+    else if(note!==old)toast('Note saved');return}
   if(f.dataset.form==='money-setup'){const url=document.getElementById('m-url').value.trim();const token=document.getElementById('m-token').value;
     if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)){toast('That is not an Apps Script Web app URL. It starts with https://script.google.com/macros/s/ and ends with /exec.');return}
     MC={url,token};try{localStorage.setItem('qd-money',JSON.stringify(MC))}catch{}M.rows=null;M.at=0;closeSheet();moneyLoad(true);return}
