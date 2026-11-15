@@ -13,6 +13,9 @@
  *  4. Deploy > Manage deployments > edit (pencil) > Version: New version > Deploy.
  *     The Web app URL stays the same.
  *
+ * Updating later: replace the whole QuestDeck file with the new version, save, then do step 4 again.
+ * Code.gs does not need to change.
+ *
  * It uses the same SECRET as Code.gs. Requests without the right secret get nothing.
  */
 
@@ -33,6 +36,7 @@ function questDeckHandle_(e) {
   try {
     if (body.qd === 'list') return qdOut_(qdList_(ss, sh, body));
     if (body.qd === 'categorize') return qdOut_(qdCategorize_(ss, sh, body));
+    if (body.qd === 'update') return qdOut_(qdUpdate_(ss, sh, body));
   } catch (err) {
     return qdOut_({ ok: false, error: 'failed', detail: String(err) });
   }
@@ -124,6 +128,52 @@ function qdCategorize_(ss, sh, body) {
 
   if (body.remember && category !== 'Ignored' && !generic && target.merchant) qdRemember_(ss, target.merchant, category);
   return { ok: true, updated: updated };
+}
+
+/** Text that begins with = + - or @ would be read as a formula, so it is made plain text. */
+function qdClean_(v) {
+  var s = String(v === undefined || v === null ? '' : v).replace(/\s+/g, ' ').trim();
+  if (/^[=+\-@]/.test(s)) s = "'" + s;
+  return s;
+}
+
+/**
+ * Corrects one row: name, date, category, and the amount for cash rows only.
+ * Amounts that came from a bank SMS are never changed.
+ */
+function qdUpdate_(ss, sh, body) {
+  var set = body.set || {};
+  var rows = qdRows_(ss, sh), target = null;
+  for (var i = 0; i < rows.length; i++) if (rows[i].row === Number(body.row)) target = rows[i];
+  if (!target) return { ok: false, error: 'no_row' };
+  if (String(body.merchant || '') !== target.merchant) return { ok: false, error: 'row_changed' };
+
+  // check everything first, write only if all of it is valid
+  var writes = [];
+  if (set.category !== undefined) {
+    var category = String(set.category).trim();
+    if (qdCategories_(ss).concat(['Ignored']).indexOf(category) < 0) return { ok: false, error: 'bad_category' };
+    writes.push(function () { sh.getRange(target.row, 7).setValue(category); });
+  }
+  if (set.merchant !== undefined) {
+    var name = qdClean_(String(set.merchant).slice(0, 80));
+    if (!name) return { ok: false, error: 'bad_name' };
+    writes.push(function () { sh.getRange(target.row, 6).setValue(name); });
+  }
+  if (set.date !== undefined) {
+    var m = String(set.date).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return { ok: false, error: 'bad_date' };
+    var serial = Math.round((Date.UTC(+m[1], +m[2] - 1, +m[3]) - Date.UTC(1899, 11, 30)) / 86400000);
+    writes.push(function () { sh.getRange(target.row, 1).setValue(serial).setNumberFormat('dd-mmm-yy'); });
+  }
+  if (set.amount !== undefined) {
+    if (target.method.toLowerCase() !== 'cash') return { ok: false, error: 'amount_locked' };
+    var amount = Number(set.amount);
+    if (!(amount > 0) || amount > 10000000) return { ok: false, error: 'bad_amount' };
+    writes.push(function () { sh.getRange(target.row, 3).setValue(amount); });
+  }
+  writes.forEach(function (w) { w(); });
+  return { ok: true, updated: [target.row] };
 }
 
 /** Adds (or updates) a keyword rule on the Settings tab so the next payment to this merchant is categorised on arrival. */
